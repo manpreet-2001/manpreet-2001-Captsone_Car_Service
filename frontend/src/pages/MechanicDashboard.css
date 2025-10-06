@@ -1,0 +1,187 @@
+.mechanic-dashboard {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* Inherit styles from CarOwnerDashboard.css and add mechanic-specific styles */
+.mechanic-dashboard .dashboard-header {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+
+.mechanic-dashboard .stat-icon {
+  background: linear-gradient(135deg, #059669, #10b981);
+}
+
+.mechanic-dashboard .nav-btn.active {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.mechanic-dashboard .btn-primary {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.mechanic-dashboard .btn-primary:hover {
+  background: #059669;
+  border-color: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Service Status */
+.service-status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.service-status.available {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.service-status.unavailable {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Schedule Grid */
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.schedule-day {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.day-header {
+  background: #f8fafc;
+  padding: 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.day-header h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e3c72;
+  margin: 0;
+}
+
+.appointment-count {
+  font-size: 14px;
+  color: #64748b;
+  background: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.day-appointments {
+  padding: 20px;
+}
+
+.schedule-appointment {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border-left: 4px solid #10b981;
+}
+
+.schedule-appointment:last-child {
+  margin-bottom: 0;
+}
+
+.appointment-time {
+  font-weight: 600;
+  color: #10b981;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.appointment-service {
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.appointment-customer {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.no-appointments {
+  color: #64748b;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+  margin: 0;
+}
+
+.schedule-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Enhanced appointment cards for mechanic view */
+.appointment-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-left: 4px solid #10b981;
+}
+
+.appointment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.appointment-card.pending {
+  border-left-color: #f59e0b;
+}
+
+.appointment-card.confirmed {
+  border-left-color: #3b82f6;
+}
+
+.appointment-card.completed {
+  border-left-color: #10b981;
+}
+
+.appointment-card.cancelled {
+  border-left-color: #ef4444;
+}
+
+/* Responsive adjustments for mechanic dashboard */
+@media (max-width: 768px) {
+  .schedule-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .schedule-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .day-header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+  
+  .appointment-count {
+    align-self: center;
+  }
+}
