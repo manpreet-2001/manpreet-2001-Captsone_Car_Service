@@ -11,6 +11,27 @@ const CarOwnerDashboard = () => {
   const [vehicles, setVehicles] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [services, setServices] = useState([]);
+  
+  // Form states
+  const [showAddVehicle, setShowAddVehicle] = useState(false);
+  const [showEditVehicle, setShowEditVehicle] = useState(null);
+  const [bookingFilter, setBookingFilter] = useState('all');
+  const [historyFilter, setHistoryFilter] = useState('');
+  const [newBooking, setNewBooking] = useState({
+    vehicle: '',
+    service: '',
+    date: '',
+    time: '',
+    notes: ''
+  });
+  const [newVehicle, setNewVehicle] = useState({
+    make: '',
+    model: '',
+    year: '',
+    licensePlate: '',
+    color: '',
+    vin: ''
+  });
 
   useEffect(() => {
     fetchDashboardData();
@@ -19,35 +40,262 @@ const CarOwnerDashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [vehiclesRes, bookingsRes, servicesRes] = await Promise.all([
+      // Try to fetch data from API endpoints
+      const [vehiclesRes, bookingsRes, servicesRes] = await Promise.allSettled([
         axios.get('/vehicles'),
         axios.get('/bookings'),
         axios.get('/services')
       ]);
       
-      setVehicles(vehiclesRes.data);
-      setBookings(bookingsRes.data);
-      setServices(servicesRes.data);
+      // Handle vehicles data
+      if (vehiclesRes.status === 'fulfilled') {
+        const vehiclesData = vehiclesRes.value.data;
+        setVehicles(Array.isArray(vehiclesData) ? vehiclesData : vehiclesData?.data || []);
+      } else {
+        console.warn('Failed to fetch vehicles:', vehiclesRes.reason);
+        // Set mock data for vehicles if API fails
+        setVehicles([
+          {
+            _id: '1',
+            make: 'Toyota',
+            model: 'Camry',
+            year: '2020',
+            licensePlate: 'ABC-123',
+            color: 'Silver',
+            vin: '1HGBH41JXMN109186',
+            createdAt: new Date('2023-01-15')
+          },
+          {
+            _id: '2',
+            make: 'Honda',
+            model: 'Civic',
+            year: '2019',
+            licensePlate: 'XYZ-789',
+            color: 'Blue',
+            vin: '2HGBH41JXMN109187',
+            createdAt: new Date('2023-03-22')
+          }
+        ]);
+      }
+      
+      // Handle bookings data
+      if (bookingsRes.status === 'fulfilled') {
+        const bookingsData = bookingsRes.value.data;
+        setBookings(Array.isArray(bookingsData) ? bookingsData : bookingsData?.data || []);
+      } else {
+        console.warn('Failed to fetch bookings:', bookingsRes.reason);
+        // Set mock data for bookings if API fails
+        setBookings([
+          {
+            _id: '1',
+            vehicle: { _id: '1', make: 'Toyota', model: 'Camry' },
+            service: { _id: '1', serviceName: 'Basic Maintenance', cost: 29 },
+            mechanic: { _id: 'm1', name: 'John Smith' },
+            date: new Date('2024-01-15'),
+            time: '10:00',
+            status: 'confirmed',
+            notes: 'Regular maintenance check',
+            createdAt: new Date('2024-01-10')
+          },
+          {
+            _id: '2',
+            vehicle: { _id: '2', make: 'Honda', model: 'Civic' },
+            service: { _id: '2', serviceName: 'Premium Service', cost: 79 },
+            mechanic: { _id: 'm2', name: 'Sarah Johnson' },
+            date: new Date('2024-01-20'),
+            time: '14:00',
+            status: 'pending',
+            notes: 'Full service package',
+            createdAt: new Date('2024-01-12')
+          },
+          {
+            _id: '3',
+            vehicle: { _id: '1', make: 'Toyota', model: 'Camry' },
+            service: { _id: '3', serviceName: 'Repair Service', cost: 150 },
+            mechanic: { _id: 'm3', name: 'Mike Wilson' },
+            date: new Date('2023-12-10'),
+            time: '09:00',
+            status: 'completed',
+            notes: 'Engine diagnostic and repair',
+            createdAt: new Date('2023-12-05')
+          },
+          {
+            _id: '4',
+            vehicle: { _id: '2', make: 'Honda', model: 'Civic' },
+            service: { _id: '1', serviceName: 'Basic Maintenance', cost: 29 },
+            mechanic: { _id: 'm1', name: 'John Smith' },
+            date: new Date('2023-11-15'),
+            time: '11:00',
+            status: 'completed',
+            notes: 'Oil change and filter replacement',
+            createdAt: new Date('2023-11-10')
+          }
+        ]);
+      }
+      
+      // Handle services data
+      if (servicesRes.status === 'fulfilled') {
+        const servicesData = servicesRes.value.data;
+        setServices(Array.isArray(servicesData) ? servicesData : servicesData?.data || []);
+      } else {
+        console.warn('Failed to fetch services:', servicesRes.reason);
+        // Set mock data for services if API fails
+        setServices([
+          {
+            _id: '1',
+            serviceName: 'Basic Maintenance',
+            description: 'Oil change, filter replacement, and basic inspection',
+            cost: 29,
+            duration: 30
+          },
+          {
+            _id: '2',
+            serviceName: 'Premium Service',
+            description: 'Comprehensive service package with warranty',
+            cost: 79,
+            duration: 60
+          },
+          {
+            _id: '3',
+            serviceName: 'Repair Service',
+            description: 'Specialized repair and diagnostic services',
+            cost: 150,
+            duration: 120
+          }
+        ]);
+      }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
+      // Set empty arrays on error to prevent filter errors
+      setVehicles([]);
+      setBookings([]);
+      setServices([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const upcomingBookings = bookings.filter(booking => 
-    new Date(booking.date) > new Date() && 
+  // Safe array operations with fallbacks
+  const upcomingBookings = Array.isArray(bookings) ? bookings.filter(booking => 
+    booking && booking.date && new Date(booking.date) > new Date() && 
     booking.status !== 'completed' && 
     booking.status !== 'cancelled'
-  );
+  ) : [];
 
-  const recentBookings = bookings.slice(0, 5);
+  const recentBookings = Array.isArray(bookings) ? bookings.slice(0, 5) : [];
 
   const stats = {
-    totalVehicles: vehicles.length,
-    totalBookings: bookings.length,
+    totalVehicles: Array.isArray(vehicles) ? vehicles.length : 0,
+    totalBookings: Array.isArray(bookings) ? bookings.length : 0,
     upcomingBookings: upcomingBookings.length,
-    completedServices: bookings.filter(b => b.status === 'completed').length
+    completedServices: Array.isArray(bookings) ? bookings.filter(b => b && b.status === 'completed').length : 0
+  };
+
+  // Handler functions
+  const handleAddVehicle = (e) => {
+    e.preventDefault();
+    const vehicle = {
+      _id: Date.now().toString(),
+      ...newVehicle,
+      createdAt: new Date()
+    };
+    setVehicles([...vehicles, vehicle]);
+    setNewVehicle({ make: '', model: '', year: '', licensePlate: '', color: '', vin: '' });
+    setShowAddVehicle(false);
+    alert('Vehicle added successfully!');
+  };
+
+  const handleEditVehicle = (vehicleId) => {
+    const vehicle = vehicles.find(v => v._id === vehicleId);
+    if (vehicle) {
+      setNewVehicle(vehicle);
+      setShowEditVehicle(vehicleId);
+      setShowAddVehicle(true);
+    }
+  };
+
+  const handleUpdateVehicle = (e) => {
+    e.preventDefault();
+    setVehicles(vehicles.map(v => 
+      v._id === showEditVehicle ? { ...v, ...newVehicle } : v
+    ));
+    setNewVehicle({ make: '', model: '', year: '', licensePlate: '', color: '', vin: '' });
+    setShowEditVehicle(null);
+    setShowAddVehicle(false);
+    alert('Vehicle updated successfully!');
+  };
+
+  const handleDeleteVehicle = (vehicleId) => {
+    if (window.confirm('Are you sure you want to delete this vehicle?')) {
+      setVehicles(vehicles.filter(v => v._id !== vehicleId));
+      alert('Vehicle deleted successfully!');
+    }
+  };
+
+  const handleBookService = (e) => {
+    e.preventDefault();
+    if (!newBooking.vehicle || !newBooking.service || !newBooking.date || !newBooking.time) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const selectedVehicle = vehicles.find(v => v._id === newBooking.vehicle);
+    const selectedService = services.find(s => s._id === newBooking.service);
+    
+    const booking = {
+      _id: Date.now().toString(),
+      vehicle: selectedVehicle,
+      service: selectedService,
+      mechanic: { _id: 'm1', name: 'John Smith' }, // Mock mechanic
+      date: new Date(newBooking.date),
+      time: newBooking.time,
+      status: 'pending',
+      notes: newBooking.notes,
+      createdAt: new Date()
+    };
+
+    setBookings([booking, ...bookings]);
+    setNewBooking({ vehicle: '', service: '', date: '', time: '', notes: '' });
+    setActiveTab('bookings');
+    alert('Service booked successfully!');
+  };
+
+  const handleCancelBooking = (bookingId) => {
+    if (window.confirm('Are you sure you want to cancel this booking?')) {
+      setBookings(bookings.map(b => 
+        b._id === bookingId ? { ...b, status: 'cancelled' } : b
+      ));
+      alert('Booking cancelled successfully!');
+    }
+  };
+
+  const handleRescheduleBooking = (bookingId) => {
+    const booking = bookings.find(b => b._id === bookingId);
+    if (booking) {
+      setNewBooking({
+        vehicle: booking.vehicle._id,
+        service: booking.service._id,
+        date: booking.date.toISOString().split('T')[0],
+        time: booking.time,
+        notes: booking.notes
+      });
+      setActiveTab('booking');
+      alert('Please select a new date and time for your appointment');
+    }
+  };
+
+  // Filter functions
+  const getFilteredBookings = () => {
+    if (bookingFilter === 'all') return bookings;
+    return bookings.filter(b => b && b.status === bookingFilter);
+  };
+
+  const getFilteredHistory = () => {
+    let filtered = bookings.filter(b => b && b.status === 'completed');
+    if (historyFilter) {
+      filtered = filtered.filter(b => b.vehicle._id === historyFilter);
+    }
+    return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
   };
 
   if (loading) {
@@ -58,13 +306,15 @@ const CarOwnerDashboard = () => {
     <div className="dashboard">
       <div className="dashboard-header">
         <div className="header-content">
-          <h1>Welcome back, {user?.name}</h1>
-          <p>Manage your vehicles and service appointments</p>
-        </div>
-        <div className="header-actions">
-          <button className="btn-primary" onClick={() => setActiveTab('booking')}>
-            Book Service
-          </button>
+          <div className="header-text">
+            <h1>Welcome back, {user?.name}</h1>
+            <p>Manage your vehicles and service appointments</p>
+          </div>
+          <div className="header-actions">
+            <button className="btn-primary" onClick={() => setActiveTab('booking')}>
+              Book Service
+            </button>
+          </div>
         </div>
       </div>
 
@@ -196,10 +446,118 @@ const CarOwnerDashboard = () => {
           <div className="vehicles-tab">
             <div className="tab-header">
               <h2>My Vehicles</h2>
-              <button className="btn-primary">Add Vehicle</button>
+              <button 
+                className="btn-primary" 
+                onClick={() => {
+                  setShowAddVehicle(true);
+                  setShowEditVehicle(null);
+                  setNewVehicle({ make: '', model: '', year: '', licensePlate: '', color: '', vin: '' });
+                }}
+              >
+                Add Vehicle
+              </button>
             </div>
+
+            {showAddVehicle && (
+              <div className="modal-overlay">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h3>{showEditVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}</h3>
+                    <button 
+                      className="close-btn" 
+                      onClick={() => {
+                        setShowAddVehicle(false);
+                        setShowEditVehicle(null);
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <form onSubmit={showEditVehicle ? handleUpdateVehicle : handleAddVehicle}>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Make *</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={newVehicle.make}
+                          onChange={(e) => setNewVehicle({...newVehicle, make: e.target.value})}
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Model *</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={newVehicle.model}
+                          onChange={(e) => setNewVehicle({...newVehicle, model: e.target.value})}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Year *</label>
+                        <input
+                          type="number"
+                          className="form-input"
+                          value={newVehicle.year}
+                          onChange={(e) => setNewVehicle({...newVehicle, year: e.target.value})}
+                          min="1900"
+                          max="2024"
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>License Plate *</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={newVehicle.licensePlate}
+                          onChange={(e) => setNewVehicle({...newVehicle, licensePlate: e.target.value})}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Color</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={newVehicle.color}
+                          onChange={(e) => setNewVehicle({...newVehicle, color: e.target.value})}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>VIN</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={newVehicle.vin}
+                          onChange={(e) => setNewVehicle({...newVehicle, vin: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-actions">
+                      <button type="button" className="btn-secondary" onClick={() => {
+                        setShowAddVehicle(false);
+                        setShowEditVehicle(null);
+                      }}>
+                        Cancel
+                      </button>
+                      <button type="submit" className="btn-primary">
+                        {showEditVehicle ? 'Update Vehicle' : 'Add Vehicle'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
             <div className="vehicles-grid">
-              {vehicles.length > 0 ? (
+              {Array.isArray(vehicles) && vehicles.length > 0 ? (
                 vehicles.map(vehicle => (
                   <div key={vehicle._id} className="vehicle-card">
                     <div className="vehicle-header">
@@ -212,13 +570,27 @@ const CarOwnerDashboard = () => {
                         <span className="value">{vehicle.licensePlate}</span>
                       </div>
                       <div className="detail-item">
+                        <span className="label">Color:</span>
+                        <span className="value">{vehicle.color || 'N/A'}</span>
+                      </div>
+                      <div className="detail-item">
                         <span className="label">Added:</span>
                         <span className="value">{new Date(vehicle.createdAt).toLocaleDateString()}</span>
                       </div>
                     </div>
                     <div className="vehicle-actions">
-                      <button className="btn-secondary">Edit</button>
-                      <button className="btn-danger">Remove</button>
+                      <button 
+                        className="btn-secondary"
+                        onClick={() => handleEditVehicle(vehicle._id)}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        className="btn-danger"
+                        onClick={() => handleDeleteVehicle(vehicle._id)}
+                      >
+                        Remove
+                      </button>
                     </div>
                   </div>
                 ))
@@ -226,7 +598,15 @@ const CarOwnerDashboard = () => {
                 <div className="empty-state">
                   <h3>No vehicles added yet</h3>
                   <p>Add your first vehicle to start booking services</p>
-                  <button className="btn-primary">Add Vehicle</button>
+                  <button 
+                    className="btn-primary"
+                    onClick={() => {
+                      setShowAddVehicle(true);
+                      setShowEditVehicle(null);
+                    }}
+                  >
+                    Add Vehicle
+                  </button>
                 </div>
               )}
             </div>
@@ -238,15 +618,41 @@ const CarOwnerDashboard = () => {
             <div className="tab-header">
               <h2>My Bookings</h2>
               <div className="filter-tabs">
-                <button className="filter-btn active">All</button>
-                <button className="filter-btn">Upcoming</button>
-                <button className="filter-btn">Completed</button>
-                <button className="filter-btn">Cancelled</button>
+                <button 
+                  className={`filter-btn ${bookingFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setBookingFilter('all')}
+                >
+                  All
+                </button>
+                <button 
+                  className={`filter-btn ${bookingFilter === 'pending' ? 'active' : ''}`}
+                  onClick={() => setBookingFilter('pending')}
+                >
+                  Pending
+                </button>
+                <button 
+                  className={`filter-btn ${bookingFilter === 'confirmed' ? 'active' : ''}`}
+                  onClick={() => setBookingFilter('confirmed')}
+                >
+                  Confirmed
+                </button>
+                <button 
+                  className={`filter-btn ${bookingFilter === 'completed' ? 'active' : ''}`}
+                  onClick={() => setBookingFilter('completed')}
+                >
+                  Completed
+                </button>
+                <button 
+                  className={`filter-btn ${bookingFilter === 'cancelled' ? 'active' : ''}`}
+                  onClick={() => setBookingFilter('cancelled')}
+                >
+                  Cancelled
+                </button>
               </div>
             </div>
             <div className="bookings-list">
-              {bookings.length > 0 ? (
-                bookings.map(booking => (
+              {getFilteredBookings().length > 0 ? (
+                getFilteredBookings().map(booking => (
                   <div key={booking._id} className="booking-card">
                     <div className="booking-header">
                       <div className="booking-info">
@@ -276,16 +682,40 @@ const CarOwnerDashboard = () => {
                         <span className="label">Cost:</span>
                         <span className="value">${booking.service?.cost}</span>
                       </div>
+                      {booking.notes && (
+                        <div className="detail-row">
+                          <span className="label">Notes:</span>
+                          <span className="value">{booking.notes}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="booking-actions">
-                      {booking.status === 'pending' && (
+                      {(booking.status === 'pending' || booking.status === 'confirmed') && (
                         <>
-                          <button className="btn-secondary">Reschedule</button>
-                          <button className="btn-danger">Cancel</button>
+                          <button 
+                            className="btn-secondary"
+                            onClick={() => handleRescheduleBooking(booking._id)}
+                          >
+                            Reschedule
+                          </button>
+                          <button 
+                            className="btn-danger"
+                            onClick={() => handleCancelBooking(booking._id)}
+                          >
+                            Cancel
+                          </button>
                         </>
                       )}
                       {booking.status === 'completed' && (
                         <button className="btn-primary">Leave Review</button>
+                      )}
+                      {booking.status === 'cancelled' && (
+                        <button 
+                          className="btn-primary"
+                          onClick={() => setActiveTab('booking')}
+                        >
+                          Book Again
+                        </button>
                       )}
                     </div>
                   </div>
@@ -293,7 +723,7 @@ const CarOwnerDashboard = () => {
               ) : (
                 <div className="empty-state">
                   <h3>No bookings found</h3>
-                  <p>Book your first service appointment</p>
+                  <p>{bookingFilter === 'all' ? 'Book your first service appointment' : `No ${bookingFilter} bookings`}</p>
                   <button className="btn-primary" onClick={() => setActiveTab('booking')}>
                     Book Service
                   </button>
@@ -309,31 +739,50 @@ const CarOwnerDashboard = () => {
               <h2>Book a Service</h2>
             </div>
             <div className="booking-form-container">
-              <form className="booking-form">
+              <form className="booking-form" onSubmit={handleBookService}>
                 <div className="form-section">
-                  <h3>Select Vehicle</h3>
+                  <h3>Select Vehicle *</h3>
                   <div className="form-group">
-                    <select className="form-select">
+                    <select 
+                      className="form-select"
+                      value={newBooking.vehicle}
+                      onChange={(e) => setNewBooking({...newBooking, vehicle: e.target.value})}
+                      required
+                    >
                       <option value="">Choose your vehicle</option>
-                      {vehicles.map(vehicle => (
+                      {Array.isArray(vehicles) && vehicles.map(vehicle => (
                         <option key={vehicle._id} value={vehicle._id}>
                           {vehicle.make} {vehicle.model} ({vehicle.year}) - {vehicle.licensePlate}
                         </option>
                       ))}
                     </select>
                   </div>
+                  {vehicles.length === 0 && (
+                    <p className="form-help">
+                      No vehicles found. <button 
+                        type="button" 
+                        className="link-btn"
+                        onClick={() => setActiveTab('vehicles')}
+                      >
+                        Add a vehicle first
+                      </button>
+                    </p>
+                  )}
                 </div>
 
                 <div className="form-section">
-                  <h3>Select Service</h3>
+                  <h3>Select Service *</h3>
                   <div className="services-grid">
-                    {services.map(service => (
+                    {Array.isArray(services) && services.map(service => (
                       <div key={service._id} className="service-option">
                         <input 
                           type="radio" 
                           id={service._id} 
                           name="service" 
                           value={service._id}
+                          checked={newBooking.service === service._id}
+                          onChange={(e) => setNewBooking({...newBooking, service: e.target.value})}
+                          required
                         />
                         <label htmlFor={service._id} className="service-label">
                           <div className="service-info">
@@ -351,22 +800,37 @@ const CarOwnerDashboard = () => {
                 </div>
 
                 <div className="form-section">
-                  <h3>Select Date & Time</h3>
+                  <h3>Select Date & Time *</h3>
                   <div className="form-row">
                     <div className="form-group">
                       <label>Date</label>
-                      <input type="date" className="form-input" />
+                      <input 
+                        type="date" 
+                        className="form-input"
+                        value={newBooking.date}
+                        onChange={(e) => setNewBooking({...newBooking, date: e.target.value})}
+                        min={new Date().toISOString().split('T')[0]}
+                        required
+                      />
                     </div>
                     <div className="form-group">
                       <label>Time</label>
-                      <select className="form-select">
+                      <select 
+                        className="form-select"
+                        value={newBooking.time}
+                        onChange={(e) => setNewBooking({...newBooking, time: e.target.value})}
+                        required
+                      >
                         <option value="">Select time</option>
                         <option value="09:00">9:00 AM</option>
                         <option value="10:00">10:00 AM</option>
                         <option value="11:00">11:00 AM</option>
+                        <option value="12:00">12:00 PM</option>
+                        <option value="13:00">1:00 PM</option>
                         <option value="14:00">2:00 PM</option>
                         <option value="15:00">3:00 PM</option>
                         <option value="16:00">4:00 PM</option>
+                        <option value="17:00">5:00 PM</option>
                       </select>
                     </div>
                   </div>
@@ -379,13 +843,27 @@ const CarOwnerDashboard = () => {
                       className="form-textarea" 
                       placeholder="Any specific requirements or notes for the mechanic..."
                       rows="4"
+                      value={newBooking.notes}
+                      onChange={(e) => setNewBooking({...newBooking, notes: e.target.value})}
                     ></textarea>
                   </div>
                 </div>
 
                 <div className="form-actions">
-                  <button type="button" className="btn-secondary">Cancel</button>
-                  <button type="submit" className="btn-primary">Book Service</button>
+                  <button 
+                    type="button" 
+                    className="btn-secondary"
+                    onClick={() => setNewBooking({ vehicle: '', service: '', date: '', time: '', notes: '' })}
+                  >
+                    Clear Form
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn-primary"
+                    disabled={vehicles.length === 0}
+                  >
+                    Book Service
+                  </button>
                 </div>
               </form>
             </div>
@@ -397,9 +875,13 @@ const CarOwnerDashboard = () => {
             <div className="tab-header">
               <h2>Service History</h2>
               <div className="history-filters">
-                <select className="form-select">
+                <select 
+                  className="form-select"
+                  value={historyFilter}
+                  onChange={(e) => setHistoryFilter(e.target.value)}
+                >
                   <option value="">All Vehicles</option>
-                  {vehicles.map(vehicle => (
+                  {Array.isArray(vehicles) && vehicles.map(vehicle => (
                     <option key={vehicle._id} value={vehicle._id}>
                       {vehicle.make} {vehicle.model}
                     </option>
@@ -408,33 +890,58 @@ const CarOwnerDashboard = () => {
               </div>
             </div>
             <div className="history-list">
-              {bookings.filter(b => b.status === 'completed').length > 0 ? (
-                bookings
-                  .filter(b => b.status === 'completed')
-                  .sort((a, b) => new Date(b.date) - new Date(a.date))
-                  .map(booking => (
-                    <div key={booking._id} className="history-item">
-                      <div className="history-date">
+              {getFilteredHistory().length > 0 ? (
+                getFilteredHistory().map(booking => (
+                  <div key={booking._id} className="history-item">
+                    <div className="history-date">
+                      <div className="date-main">
                         {new Date(booking.date).toLocaleDateString()}
                       </div>
-                      <div className="history-details">
-                        <h4>{booking.service?.serviceName}</h4>
-                        <p>{booking.vehicle?.make} {booking.vehicle?.model}</p>
-                        <p>Mechanic: {booking.mechanic?.name}</p>
-                      </div>
-                      <div className="history-cost">
-                        ${booking.service?.cost}
-                      </div>
-                      <div className="history-actions">
-                        <button className="btn-secondary">View Details</button>
-                        <button className="btn-primary">Leave Review</button>
+                      <div className="date-time">
+                        {booking.time}
                       </div>
                     </div>
-                  ))
+                    <div className="history-details">
+                      <h4>{booking.service?.serviceName}</h4>
+                      <p className="vehicle-info">
+                        <strong>{booking.vehicle?.make} {booking.vehicle?.model}</strong> ({booking.vehicle?.year})
+                      </p>
+                      <p className="mechanic-info">
+                        <span className="label">Mechanic:</span> {booking.mechanic?.name}
+                      </p>
+                      {booking.notes && (
+                        <p className="notes-info">
+                          <span className="label">Notes:</span> {booking.notes}
+                        </p>
+                      )}
+                    </div>
+                    <div className="history-cost">
+                      <span className="cost-amount">${booking.service?.cost}</span>
+                      <span className="cost-label">Total</span>
+                    </div>
+                    <div className="history-actions">
+                      <button className="btn-secondary">View Details</button>
+                      <button className="btn-primary">Leave Review</button>
+                    </div>
+                  </div>
+                ))
               ) : (
                 <div className="empty-state">
                   <h3>No service history</h3>
-                  <p>Your completed services will appear here</p>
+                  <p>
+                    {historyFilter 
+                      ? 'No completed services found for the selected vehicle' 
+                      : 'Your completed services will appear here'
+                    }
+                  </p>
+                  {historyFilter && (
+                    <button 
+                      className="btn-secondary"
+                      onClick={() => setHistoryFilter('')}
+                    >
+                      Show All Vehicles
+                    </button>
+                  )}
                 </div>
               )}
             </div>

@@ -1,0 +1,407 @@
+.services-page {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.services-hero {
+  background: linear-gradient(135deg, #1e3c72 0%, #2c5282 100%);
+  color: white;
+  padding: 80px 0;
+  text-align: center;
+}
+
+.hero-content h1 {
+  font-family: 'Poppins', sans-serif;
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: white;
+  background: linear-gradient(135deg, #ffffff, #ff6b35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.hero-content p {
+  font-size: 1.4rem;
+  opacity: 1;
+  max-width: 600px;
+  margin: 0 auto;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 400;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  line-height: 1.6;
+}
+
+.services-content {
+  padding: 60px 0;
+}
+
+.services-header {
+  margin-bottom: 40px;
+}
+
+.search-filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+}
+
+.search-box {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 16px 50px 16px 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 16px;
+  background: white;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: #1e3c72;
+  box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  color: #64748b;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.filter-tab {
+  padding: 12px 24px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #64748b;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-tab:hover {
+  border-color: #1e3c72;
+  color: #1e3c72;
+}
+
+.filter-tab.active {
+  background: #1e3c72;
+  border-color: #1e3c72;
+  color: white;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 24px;
+  margin-bottom: 60px;
+}
+
+.service-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.service-header {
+  padding: 24px 24px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.category-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.category-badge.maintenance {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.category-badge.repair {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.category-badge.diagnostic {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.category-badge.emergency {
+  background: #fecaca;
+  color: #dc2626;
+}
+
+.category-badge.inspection {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.service-rating {
+  text-align: right;
+}
+
+.stars {
+  margin-bottom: 4px;
+}
+
+.star {
+  color: #fbbf24;
+  font-size: 16px;
+  margin-right: 2px;
+}
+
+.star.filled {
+  color: #fbbf24;
+}
+
+.star.half {
+  color: #fbbf24;
+}
+
+.rating-text {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.service-content {
+  padding: 0 24px 20px;
+}
+
+.service-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e3c72;
+  margin-bottom: 12px;
+}
+
+.service-description {
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.service-meta {
+  display: flex;
+  gap: 20px;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.meta-value {
+  font-size: 14px;
+  color: #374151;
+  font-weight: 600;
+}
+
+.service-footer {
+  padding: 20px 24px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f1f5f9;
+}
+
+.service-price {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.price {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e3c72;
+}
+
+.price-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.book-service-btn {
+  padding: 12px 24px;
+  background: #1e3c72;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.book-service-btn:hover {
+  background: #2c5282;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3);
+}
+
+.no-services {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.no-services-content h3 {
+  font-size: 24px;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+.no-services-content p {
+  color: #64748b;
+  font-size: 16px;
+}
+
+.services-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  margin-top: 60px;
+}
+
+.stat-item {
+  background: white;
+  padding: 32px 24px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e3c72;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero-content h1 {
+    font-size: 2.5rem;
+  }
+  
+  .hero-content p {
+    font-size: 1.1rem;
+  }
+  
+  .search-filter-section {
+    gap: 16px;
+  }
+  
+  .filter-tabs {
+    gap: 6px;
+  }
+  
+  .filter-tab {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  
+  .services-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .service-header {
+    padding: 20px 20px 12px;
+  }
+  
+  .service-content {
+    padding: 0 20px 16px;
+  }
+  
+  .service-footer {
+    padding: 16px 20px 20px;
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .service-meta {
+    gap: 16px;
+  }
+  
+  .services-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  
+  .stat-item {
+    padding: 24px 16px;
+  }
+  
+  .stat-number {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .services-hero {
+    padding: 60px 0;
+  }
+  
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+  
+  .services-content {
+    padding: 40px 0;
+  }
+  
+  .services-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-item {
+    padding: 20px 16px;
+  }
+}

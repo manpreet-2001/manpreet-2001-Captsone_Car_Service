@@ -7,6 +7,10 @@ import Navbar from './components/Navbar';
 // Pages
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ServicesPage from './pages/ServicesPage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
 import CarOwnerDashboard from './pages/CarOwnerDashboard';
 import MechanicDashboard from './pages/MechanicDashboard';
 
@@ -23,10 +27,10 @@ function App() {
               {/* Public Routes */}
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<div className="coming-soon">Register Page - Coming Soon</div>} />
-              <Route path="/services" element={<div className="coming-soon">Services Page - Coming Soon</div>} />
-              <Route path="/about" element={<div className="coming-soon">About Page - Coming Soon</div>} />
-              <Route path="/contact" element={<div className="coming-soon">Contact Page - Coming Soon</div>} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/services" element={<ServicesPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/contact" element={<ContactPage />} />
               
               {/* Protected Routes */}
               <Route path="/dashboard" element={

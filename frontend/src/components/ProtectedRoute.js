@@ -1,10 +1,10 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { AuthContext } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-  const { user, loading, isAuthenticated } = useContext(AuthContext);
+  const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
 
   if (loading) {
