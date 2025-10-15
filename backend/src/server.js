@@ -13,6 +13,7 @@ const vehicleRoutes = require('./routes/vehicles');
 const serviceRoutes = require('./routes/services');
 const bookingRoutes = require('./routes/bookings');
 const reviewRoutes = require('./routes/reviews');
+const contactRoutes = require('./routes/contact');
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -40,8 +42,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
+// 404 handler (Express 5 compatible)
+app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 

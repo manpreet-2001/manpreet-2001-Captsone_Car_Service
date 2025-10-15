@@ -219,6 +219,31 @@ const validateSearch = [
   handleValidationErrors
 ];
 
+// Contact validation rules
+const validateContact = [
+  body('name')
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Name must be between 2 and 50 characters'),
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email'),
+  body('subject')
+    .trim()
+    .isLength({ min: 5, max: 100 })
+    .withMessage('Subject must be between 5 and 100 characters'),
+  body('message')
+    .trim()
+    .isLength({ min: 10, max: 1000 })
+    .withMessage('Message must be between 10 and 1000 characters'),
+  body('phone')
+    .optional()
+    .matches(/^\+?[\d\s-()]+$/)
+    .withMessage('Please provide a valid phone number'),
+  handleValidationErrors
+];
+
 module.exports = {
   handleValidationErrors,
   validateUserRegistration,
@@ -230,5 +255,6 @@ module.exports = {
   validateReview,
   validateObjectId,
   validatePagination,
-  validateSearch
+  validateSearch,
+  validateContact
 };

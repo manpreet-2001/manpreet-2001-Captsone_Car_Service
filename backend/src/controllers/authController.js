@@ -7,7 +7,7 @@ const { validationResult } = require('express-validator');
 // @access  Public
 const register = async (req, res) => {
   try {
-    const { name, email, password, role = 'owner' } = req.body;
+    const { name, email, password, role = 'owner', phone, address } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -23,7 +23,9 @@ const register = async (req, res) => {
       name,
       email,
       password,
-      role
+      role,
+      phone,
+      address
     });
 
     // Generate token
