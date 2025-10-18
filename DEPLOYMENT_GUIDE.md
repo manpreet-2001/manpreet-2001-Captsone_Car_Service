@@ -157,11 +157,11 @@ Copy and run those commands!
    
    # Email (use your Gmail)
    EMAIL_SERVICE=gmail
-   EMAIL_USER=manpreet123singh987@gmail.com
-   EMAIL_PASSWORD=plsohynfxgbdkapo
+   EMAIL_USER=your-email@gmail.com
+   EMAIL_PASSWORD=your-16-char-app-password
    EMAIL_FROM_NAME=Car Service Platform
-   EMAIL_FROM=manpreet123singh987@gmail.com
-   EMAIL_REPLY_TO=manpreet123singh987@gmail.com
+   EMAIL_FROM=your-email@gmail.com
+   EMAIL_REPLY_TO=your-email@gmail.com
    
    FRONTEND_URL=https://your-app.vercel.app
    ```
