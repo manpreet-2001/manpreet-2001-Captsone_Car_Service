@@ -4,7 +4,12 @@ const serviceSchema = new mongoose.Schema({
   mechanic: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Service must belong to a mechanic']
+    required: false // Make optional temporarily - will be assigned when mechanic creates service
+  },
+  garage: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Garage',
+    required: false // Make optional for now to support existing services
   },
   serviceName: {
     type: String,
@@ -192,8 +197,11 @@ serviceSchema.virtual('formattedDuration').get(function() {
 
 // Virtual for total cost with parts
 serviceSchema.virtual('totalCost').get(function() {
+  if (!this.requiredParts || !Array.isArray(this.requiredParts)) {
+    return this.baseCost;
+  }
   const partsCost = this.requiredParts.reduce((total, part) => {
-    return total + (part.cost * part.quantity);
+    return total + ((part.cost || 0) * (part.quantity || 0));
   }, 0);
   return this.baseCost + partsCost;
 });

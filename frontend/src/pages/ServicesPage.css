@@ -3,6 +3,236 @@
   background: #f8fafc;
 }
 
+.view-mode-toggle {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 8px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.view-mode-btn {
+  flex: 1;
+  padding: 14px 24px;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.view-mode-btn.active {
+  background: linear-gradient(135deg, #1e3c72 0%, #2c5282 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(30, 60, 114, 0.4);
+}
+
+.view-mode-btn:hover:not(.active) {
+  background: #f5f7fa;
+}
+
+.mechanic-filter {
+  margin-top: 16px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.mechanic-filter .form-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 15px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.mechanic-filter .form-select:focus {
+  outline: none;
+  border-color: #1e3c72;
+  box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.1);
+}
+
+.mechanics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  margin: 32px 0;
+}
+
+.mechanic-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.mechanic-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+}
+
+.mechanic-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mechanic-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1e3c72 0%, #2c5282 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mechanic-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  font-size: 32px;
+}
+
+.mechanic-info {
+  flex: 1;
+}
+
+.mechanic-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  color: #2d3748;
+}
+
+.mechanic-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mechanic-rating .stars {
+  display: flex;
+  gap: 2px;
+  font-size: 14px;
+}
+
+.mechanic-rating .rating-text {
+  font-size: 13px;
+  color: #666;
+}
+
+.mechanic-details {
+  margin-bottom: 16px;
+}
+
+.mechanic-details .detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #4a5568;
+}
+
+.detail-icon {
+  font-size: 18px;
+}
+
+.specializations {
+  margin-top: 12px;
+}
+
+.spec-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.spec-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.spec-tag {
+  padding: 4px 12px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #4a5568;
+  text-transform: capitalize;
+}
+
+.mechanic-footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.mechanic-footer button {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #1e3c72 0%, #2c5282 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.mechanic-footer button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 60, 114, 0.4);
+}
+
+.service-provider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #f7fafc;
+  border-radius: 8px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+.provider-label {
+  color: #666;
+  font-weight: 500;
+}
+
+.provider-name {
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.provider-rating {
+  color: #f59e0b;
+  font-weight: 600;
+  margin-left: auto;
+}
+
 .services-hero {
   background: linear-gradient(135deg, #1e3c72 0%, #2c5282 100%);
   color: white;

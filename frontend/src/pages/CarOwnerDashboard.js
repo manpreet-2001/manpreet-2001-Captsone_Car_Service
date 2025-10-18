@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ReviewModal from '../components/ReviewModal';
 import './CarOwnerDashboard.css';
 
 const CarOwnerDashboard = () => {
@@ -11,15 +12,19 @@ const CarOwnerDashboard = () => {
   const [vehicles, setVehicles] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [services, setServices] = useState([]);
-  
+  const [mechanics, setMechanics] = useState([]);
+
   // Form states
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [showEditVehicle, setShowEditVehicle] = useState(null);
   const [bookingFilter, setBookingFilter] = useState('all');
   const [historyFilter, setHistoryFilter] = useState('');
+  const [rescheduleBookingId, setRescheduleBookingId] = useState(null); // Track booking being rescheduled
+  const [reviewBooking, setReviewBooking] = useState(null); // Track booking being reviewed
   const [newBooking, setNewBooking] = useState({
     vehicle: '',
     service: '',
+    mechanic: '',
     date: '',
     time: '',
     notes: ''
@@ -35,94 +40,88 @@ const CarOwnerDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+    
+    // Auto-refresh data every 30 seconds
+    const interval = setInterval(() => {
+      fetchDashboardData();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
       // Try to fetch data from API endpoints
-      const [vehiclesRes, bookingsRes, servicesRes] = await Promise.allSettled([
-        axios.get('/vehicles'),
-        axios.get('/bookings'),
-        axios.get('/services')
+      const [vehiclesRes, bookingsRes, servicesRes, mechanicsRes] = await Promise.allSettled([
+        axios.get('/api/vehicles'),
+        axios.get('/api/bookings'),
+        axios.get('/api/services?limit=100'),
+        axios.get('/api/users/mechanics')
       ]);
       
       // Handle vehicles data
       if (vehiclesRes.status === 'fulfilled') {
         const vehiclesData = vehiclesRes.value.data;
-        setVehicles(Array.isArray(vehiclesData) ? vehiclesData : vehiclesData?.data || []);
+        console.log('Vehicles API response:', vehiclesData);
+        const vehiclesArray = Array.isArray(vehiclesData) ? vehiclesData : vehiclesData?.data || [];
+        setVehicles(vehiclesArray);
+        console.log('Vehicles set:', vehiclesArray.length, 'vehicles');
       } else {
         console.warn('Failed to fetch vehicles:', vehiclesRes.reason);
-        // Set mock data for vehicles if API fails
-        setVehicles([
-          {
-            _id: '1',
-            make: 'Toyota',
-            model: 'Camry',
-            year: '2020',
-            licensePlate: 'ABC-123',
-            color: 'Silver',
-            vin: '1HGBH41JXMN109186',
-            createdAt: new Date('2023-01-15')
-          },
-          {
-            _id: '2',
-            make: 'Honda',
-            model: 'Civic',
-            year: '2019',
-            licensePlate: 'XYZ-789',
-            color: 'Blue',
-            vin: '2HGBH41JXMN109187',
-            createdAt: new Date('2023-03-22')
-          }
-        ]);
+        console.error('Vehicles error details:', vehiclesRes.reason?.response?.data);
+        // Set empty array if API fails (user might not have any vehicles yet)
+        setVehicles([]);
       }
       
       // Handle bookings data
       if (bookingsRes.status === 'fulfilled') {
         const bookingsData = bookingsRes.value.data;
+        console.log('Bookings API response:', bookingsData);
         setBookings(Array.isArray(bookingsData) ? bookingsData : bookingsData?.data || []);
       } else {
         console.warn('Failed to fetch bookings:', bookingsRes.reason);
-        // Set mock data for bookings if API fails
+        // Set empty array - user will create bookings
+        setBookings([]);
+        /* Removed mock bookings - let users create real ones
         setBookings([
           {
             _id: '1',
             vehicle: { _id: '1', make: 'Toyota', model: 'Camry' },
-            service: { _id: '1', serviceName: 'Basic Maintenance', cost: 29 },
+            service: { _id: '1', serviceName: 'Oil Change Service', cost: 45 },
             mechanic: { _id: 'm1', name: 'John Smith' },
             date: new Date('2024-01-15'),
             time: '10:00',
             status: 'confirmed',
-            notes: 'Regular maintenance check',
+            notes: 'Regular oil change service',
             createdAt: new Date('2024-01-10')
           },
           {
             _id: '2',
             vehicle: { _id: '2', make: 'Honda', model: 'Civic' },
-            service: { _id: '2', serviceName: 'Premium Service', cost: 79 },
+            service: { _id: '2', serviceName: 'Brake Inspection & Service', cost: 120 },
             mechanic: { _id: 'm2', name: 'Sarah Johnson' },
             date: new Date('2024-01-20'),
             time: '14:00',
             status: 'pending',
-            notes: 'Full service package',
+            notes: 'Brake system inspection and service',
             createdAt: new Date('2024-01-12')
           },
           {
             _id: '3',
             vehicle: { _id: '1', make: 'Toyota', model: 'Camry' },
-            service: { _id: '3', serviceName: 'Repair Service', cost: 150 },
+            service: { _id: '3', serviceName: 'Engine Diagnostic', cost: 85 },
             mechanic: { _id: 'm3', name: 'Mike Wilson' },
             date: new Date('2023-12-10'),
             time: '09:00',
             status: 'completed',
-            notes: 'Engine diagnostic and repair',
+            notes: 'Engine diagnostic and performance analysis',
             createdAt: new Date('2023-12-05')
           },
           {
             _id: '4',
             vehicle: { _id: '2', make: 'Honda', model: 'Civic' },
-            service: { _id: '1', serviceName: 'Basic Maintenance', cost: 29 },
+            service: { _id: '1', serviceName: 'Oil Change Service', cost: 45 },
             mechanic: { _id: 'm1', name: 'John Smith' },
             date: new Date('2023-11-15'),
             time: '11:00',
@@ -130,39 +129,142 @@ const CarOwnerDashboard = () => {
             notes: 'Oil change and filter replacement',
             createdAt: new Date('2023-11-10')
           }
-        ]);
+        */
+        // End of removed mock bookings
       }
       
       // Handle services data
       if (servicesRes.status === 'fulfilled') {
         const servicesData = servicesRes.value.data;
-        setServices(Array.isArray(servicesData) ? servicesData : servicesData?.data || []);
+        console.log('Services API response:', servicesData);
+        const allServices = Array.isArray(servicesData) ? servicesData : servicesData?.data || [];
+        console.log('Total services available:', allServices.length);
+        setServices(allServices);
       } else {
         console.warn('Failed to fetch services:', servicesRes.reason);
         // Set mock data for services if API fails
         setServices([
           {
             _id: '1',
-            serviceName: 'Basic Maintenance',
-            description: 'Oil change, filter replacement, and basic inspection',
-            cost: 29,
+            serviceName: 'Oil Change Service',
+            description: 'Engine oil change with premium filter replacement and fluid level check',
+            baseCost: 45,
+            estimatedDuration: 30,
+            cost: 45,
             duration: 30
           },
           {
             _id: '2',
-            serviceName: 'Premium Service',
-            description: 'Comprehensive service package with warranty',
-            cost: 79,
-            duration: 60
+            serviceName: 'Brake Inspection & Service',
+            description: 'Complete brake system inspection, pad replacement, and rotor resurfacing',
+            baseCost: 120,
+            estimatedDuration: 90,
+            cost: 120,
+            duration: 90
           },
           {
             _id: '3',
-            serviceName: 'Repair Service',
-            description: 'Specialized repair and diagnostic services',
+            serviceName: 'Engine Diagnostic',
+            description: 'Computer diagnostic scan, engine performance analysis, and error code reading',
+            baseCost: 85,
+            estimatedDuration: 60,
+            cost: 85,
+            duration: 60
+          },
+          {
+            _id: '4',
+            serviceName: 'Transmission Service',
+            description: 'Transmission fluid change, filter replacement, and system inspection',
+            baseCost: 150,
+            estimatedDuration: 120,
             cost: 150,
             duration: 120
+          },
+          {
+            _id: '5',
+            serviceName: 'AC System Service',
+            description: 'Air conditioning system check, refrigerant recharge, and filter cleaning',
+            baseCost: 95,
+            estimatedDuration: 75,
+            cost: 95,
+            duration: 75
+          },
+          {
+            _id: '6',
+            serviceName: 'Tire Rotation & Balance',
+            description: 'Tire rotation, wheel balancing, and alignment check',
+            baseCost: 65,
+            estimatedDuration: 45,
+            cost: 65,
+            duration: 45
+          },
+          {
+            _id: '7',
+            serviceName: 'Battery Service',
+            description: 'Battery testing, terminal cleaning, and replacement if needed',
+            baseCost: 75,
+            estimatedDuration: 30,
+            cost: 75,
+            duration: 30
+          },
+          {
+            _id: '8',
+            serviceName: 'Spark Plug Replacement',
+            description: 'Spark plug replacement, ignition system check, and performance tuning',
+            baseCost: 110,
+            estimatedDuration: 60,
+            cost: 110,
+            duration: 60
+          },
+          {
+            _id: '9',
+            serviceName: 'Timing Belt Service',
+            description: 'Timing belt replacement, water pump service, and tensioner check',
+            baseCost: 350,
+            estimatedDuration: 180,
+            cost: 350,
+            duration: 180
+          },
+          {
+            _id: '10',
+            serviceName: 'Suspension Service',
+            description: 'Shock absorber inspection, strut replacement, and suspension alignment',
+            baseCost: 200,
+            estimatedDuration: 120,
+            cost: 200,
+            duration: 120
+          },
+          {
+            _id: '11',
+            serviceName: 'Exhaust System Repair',
+            description: 'Exhaust pipe inspection, muffler replacement, and emission system check',
+            baseCost: 180,
+            estimatedDuration: 90,
+            cost: 180,
+            duration: 90
+          },
+          {
+            _id: '12',
+            serviceName: 'Full Vehicle Inspection',
+            description: 'Comprehensive 50-point safety inspection and maintenance report',
+            baseCost: 125,
+            estimatedDuration: 90,
+            cost: 125,
+            duration: 90
           }
         ]);
+      }
+
+      // Handle mechanics data
+      if (mechanicsRes.status === 'fulfilled') {
+        const mechanicsData = mechanicsRes.value.data;
+        console.log('Mechanics API response:', mechanicsData);
+        const allMechanics = Array.isArray(mechanicsData) ? mechanicsData : mechanicsData?.data || [];
+        console.log('Total mechanics available:', allMechanics.length);
+        setMechanics(allMechanics);
+      } else {
+        console.warn('Failed to fetch mechanics:', mechanicsRes.reason);
+        setMechanics([]);
       }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -170,17 +272,21 @@ const CarOwnerDashboard = () => {
       setVehicles([]);
       setBookings([]);
       setServices([]);
+      setMechanics([]);
     } finally {
       setLoading(false);
     }
   };
 
   // Safe array operations with fallbacks
-  const upcomingBookings = Array.isArray(bookings) ? bookings.filter(booking => 
-    booking && booking.date && new Date(booking.date) > new Date() && 
-    booking.status !== 'completed' && 
-    booking.status !== 'cancelled'
-  ) : [];
+  const upcomingBookings = Array.isArray(bookings) ? bookings.filter(booking => {
+    if (!booking) return false;
+    const bookingDate = booking.bookingDate || booking.date;
+    if (!bookingDate) return false;
+    return new Date(bookingDate) > new Date() && 
+           booking.status !== 'completed' && 
+           booking.status !== 'cancelled';
+  }) : [];
 
   const recentBookings = Array.isArray(bookings) ? bookings.slice(0, 5) : [];
 
@@ -192,17 +298,37 @@ const CarOwnerDashboard = () => {
   };
 
   // Handler functions
-  const handleAddVehicle = (e) => {
+  const handleAddVehicle = async (e) => {
     e.preventDefault();
-    const vehicle = {
-      _id: Date.now().toString(),
-      ...newVehicle,
-      createdAt: new Date()
-    };
-    setVehicles([...vehicles, vehicle]);
-    setNewVehicle({ make: '', model: '', year: '', licensePlate: '', color: '', vin: '' });
-    setShowAddVehicle(false);
-    alert('Vehicle added successfully!');
+    try {
+      console.log('Adding vehicle:', newVehicle);
+      console.log('API URL:', axios.defaults.baseURL + '/api/vehicles');
+      
+      const response = await axios.post('/api/vehicles', newVehicle);
+      console.log('Add vehicle response:', response.data);
+      
+      if (response.data.success) {
+        setVehicles([...vehicles, response.data.data]);
+        setNewVehicle({ make: '', model: '', year: '', licensePlate: '', color: '', vin: '' });
+        setShowAddVehicle(false);
+        alert('Vehicle added successfully!');
+        // Refresh the dashboard data
+        fetchDashboardData();
+      }
+    } catch (error) {
+      console.error('Failed to add vehicle:', error);
+      console.error('Error response:', error.response?.data);
+      
+      let errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+      
+      // If there are validation errors, show them
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const validationErrors = error.response.data.errors.map(err => err.msg).join(', ');
+        errorMessage = 'Validation errors: ' + validationErrors;
+      }
+      
+      alert('Failed to add vehicle: ' + errorMessage);
+    }
   };
 
   const handleEditVehicle = (vehicleId) => {
@@ -232,32 +358,78 @@ const CarOwnerDashboard = () => {
     }
   };
 
-  const handleBookService = (e) => {
+  const handleBookService = async (e) => {
     e.preventDefault();
     if (!newBooking.vehicle || !newBooking.service || !newBooking.date || !newBooking.time) {
       alert('Please fill in all required fields');
       return;
     }
 
-    const selectedVehicle = vehicles.find(v => v._id === newBooking.vehicle);
-    const selectedService = services.find(s => s._id === newBooking.service);
-    
-    const booking = {
-      _id: Date.now().toString(),
-      vehicle: selectedVehicle,
-      service: selectedService,
-      mechanic: { _id: 'm1', name: 'John Smith' }, // Mock mechanic
-      date: new Date(newBooking.date),
-      time: newBooking.time,
-      status: 'pending',
-      notes: newBooking.notes,
-      createdAt: new Date()
-    };
+    try {
+      // Check if user is authenticated
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('You must be logged in to book a service. Please log in first.');
+        return;
+      }
 
-    setBookings([booking, ...bookings]);
-    setNewBooking({ vehicle: '', service: '', date: '', time: '', notes: '' });
-    setActiveTab('bookings');
-    alert('Service booked successfully!');
+      // Check if this is a reschedule or new booking
+      if (rescheduleBookingId) {
+        // This is a reschedule - update existing booking
+        const rescheduleData = {
+          newDate: newBooking.date,
+          newTime: newBooking.time,
+          reason: 'Rescheduled by customer'
+        };
+
+        console.log('Rescheduling booking:', rescheduleBookingId, rescheduleData);
+        const response = await axios.put(`/api/bookings/${rescheduleBookingId}/reschedule`, rescheduleData);
+        console.log('Reschedule response:', response.data);
+        
+        if (response.data.success) {
+          // Update the booking in the list
+          setBookings(bookings.map(b => 
+            b._id === rescheduleBookingId ? response.data.data : b
+          ));
+          setNewBooking({ vehicle: '', service: '', date: '', time: '', notes: '' });
+          setRescheduleBookingId(null); // Clear reschedule mode
+          setActiveTab('bookings');
+          alert('Appointment rescheduled successfully!');
+          fetchDashboardData(); // Refresh to get updated data
+        }
+      } else {
+        // This is a new booking
+        const bookingData = {
+          vehicle: newBooking.vehicle,
+          service: newBooking.service,
+          mechanic: newBooking.mechanic,  // User-selected mechanic
+          bookingDate: newBooking.date,
+          bookingTime: newBooking.time,
+          specialInstructions: newBooking.notes,
+          serviceLocation: 'at_garage'
+        };
+
+        console.log('Creating new booking:', bookingData);
+        const response = await axios.post('/api/bookings', bookingData);
+        console.log('Booking response:', response.data);
+        
+        if (response.data.success) {
+          setBookings([response.data.data, ...bookings]);
+          setNewBooking({ vehicle: '', service: '', date: '', time: '', notes: '' });
+          setActiveTab('bookings');
+          alert('Service booked successfully!');
+          fetchDashboardData(); // Refresh to get updated data
+        } else {
+          alert('Failed to book service: ' + (response.data.message || 'Unknown error'));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to book/reschedule service:', error);
+      console.error('Error response:', error.response?.data);
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+      alert('Failed: ' + errorMessage);
+      setRescheduleBookingId(null); // Clear reschedule mode on error
+    }
   };
 
   const handleCancelBooking = (bookingId) => {
@@ -272,22 +444,31 @@ const CarOwnerDashboard = () => {
   const handleRescheduleBooking = (bookingId) => {
     const booking = bookings.find(b => b._id === bookingId);
     if (booking) {
+      const bookingDate = booking.bookingDate || booking.date;
+      const bookingTime = booking.bookingTime || booking.time;
+      
+      setRescheduleBookingId(bookingId); // Track which booking is being rescheduled
       setNewBooking({
-        vehicle: booking.vehicle._id,
-        service: booking.service._id,
-        date: booking.date.toISOString().split('T')[0],
-        time: booking.time,
-        notes: booking.notes
+        vehicle: booking.vehicle?._id || booking.vehicle,
+        service: booking.service?._id || booking.service,
+        date: bookingDate ? (typeof bookingDate === 'string' ? bookingDate.split('T')[0] : new Date(bookingDate).toISOString().split('T')[0]) : '',
+        time: bookingTime || '',
+        notes: booking.specialInstructions || booking.notes || ''
       });
       setActiveTab('booking');
-      alert('Please select a new date and time for your appointment');
+      alert('Update the date and time, then click "Book Service" to reschedule');
     }
   };
 
   // Filter functions
   const getFilteredBookings = () => {
-    if (bookingFilter === 'all') return bookings;
-    return bookings.filter(b => b && b.status === bookingFilter);
+    let filtered = bookingFilter === 'all' ? bookings : bookings.filter(b => b && b.status === bookingFilter);
+    // Sort by newest first (most recent bookings at the top)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.bookingDate || a.date || a.createdAt);
+      const dateB = new Date(b.bookingDate || b.date || b.createdAt);
+      return dateB - dateA; // Descending order (newest first)
+    });
   };
 
   const getFilteredHistory = () => {
@@ -307,13 +488,16 @@ const CarOwnerDashboard = () => {
       <div className="dashboard-header">
         <div className="header-content">
           <div className="header-text">
-            <h1>Welcome back, {user?.name}</h1>
-            <p>Manage your vehicles and service appointments</p>
-          </div>
-          <div className="header-actions">
-            <button className="btn-primary" onClick={() => setActiveTab('booking')}>
-              Book Service
-            </button>
+          <h1>Welcome back, {user?.name}</h1>
+          <p>Manage your vehicles and service appointments</p>
+        </div>
+        <div className="header-actions">
+          <button className="btn-secondary" onClick={fetchDashboardData} style={{marginRight: '12px'}}>
+            🔄 Refresh
+          </button>
+          <button className="btn-primary" onClick={() => setActiveTab('booking')}>
+            Book Service
+          </button>
           </div>
         </div>
       </div>
@@ -387,13 +571,13 @@ const CarOwnerDashboard = () => {
 
             <div className="overview-grid">
               <div className="overview-card">
-                <h3>Upcoming Appointments</h3>
+                <h3>Next Appointments (Upcoming)</h3>
                 <div className="appointments-list">
                   {upcomingBookings.length > 0 ? (
                     upcomingBookings.slice(0, 3).map(booking => (
                       <div key={booking._id} className="appointment-item">
                         <div className="appointment-date">
-                          {new Date(booking.date).toLocaleDateString()}
+                          {new Date(booking.bookingDate || booking.date).toLocaleDateString()}
                         </div>
                         <div className="appointment-details">
                           <strong>{booking.service?.serviceName}</strong>
@@ -413,28 +597,39 @@ const CarOwnerDashboard = () => {
               </div>
 
               <div className="overview-card">
-                <h3>Recent Activity</h3>
+                <h3>My Vehicles</h3>
                 <div className="activity-list">
-                  {recentBookings.length > 0 ? (
-                    recentBookings.map(booking => (
-                      <div key={booking._id} className="activity-item">
+                  {Array.isArray(vehicles) && vehicles.length > 0 ? (
+                    vehicles.slice(0, 3).map(vehicle => (
+                      <div key={vehicle._id} className="activity-item">
                         <div className="activity-icon">
-                          {booking.status === 'completed' ? '✅' : 
-                           booking.status === 'confirmed' ? '📅' : '⏳'}
+                          🚗
                         </div>
                         <div className="activity-details">
-                          <strong>{booking.service?.serviceName}</strong>
-                          <span>{new Date(booking.createdAt).toLocaleDateString()}</span>
+                          <strong>{vehicle.make} {vehicle.model}</strong>
+                          <span>{vehicle.year} • {vehicle.licensePlate}</span>
                         </div>
-                        <div className="activity-status">
-                          <span className={`status-badge ${booking.status}`}>
-                            {booking.status}
-                          </span>
-                        </div>
+                        <button 
+                          className="btn-secondary btn-sm"
+                          onClick={() => setActiveTab('vehicles')}
+                        >
+                          View
+                        </button>
                       </div>
                     ))
                   ) : (
-                    <p className="no-data">No recent activity</p>
+                    <div className="no-data">
+                      <p>No vehicles added</p>
+                      <button 
+                        className="btn-primary"
+                        onClick={() => {
+                          setShowAddVehicle(true);
+                          setShowEditVehicle(null);
+                        }}
+                      >
+                        Add Vehicle
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -531,12 +726,13 @@ const CarOwnerDashboard = () => {
                         />
                       </div>
                       <div className="form-group">
-                        <label>VIN</label>
+                        <label>VIN (Optional)</label>
                         <input
                           type="text"
                           className="form-input"
                           value={newVehicle.vin}
-                          onChange={(e) => setNewVehicle({...newVehicle, vin: e.target.value})}
+                          onChange={(e) => setNewVehicle({...newVehicle, vin: e.target.value.toUpperCase()})}
+                          placeholder="Optional - leave empty if unknown"
                         />
                       </div>
                     </div>
@@ -553,7 +749,7 @@ const CarOwnerDashboard = () => {
                     </div>
                   </form>
                 </div>
-              </div>
+            </div>
             )}
 
             <div className="vehicles-grid">
@@ -668,19 +864,19 @@ const CarOwnerDashboard = () => {
                     <div className="booking-details">
                       <div className="detail-row">
                         <span className="label">Date:</span>
-                        <span className="value">{new Date(booking.date).toLocaleDateString()}</span>
+                        <span className="value">{new Date(booking.bookingDate || booking.date).toLocaleDateString()}</span>
                       </div>
                       <div className="detail-row">
                         <span className="label">Time:</span>
-                        <span className="value">{booking.time}</span>
+                        <span className="value">{booking.bookingTime || booking.time}</span>
                       </div>
                       <div className="detail-row">
                         <span className="label">Mechanic:</span>
-                        <span className="value">{booking.mechanic?.name}</span>
+                        <span className="value">{booking.mechanic?.name || 'Pending Assignment'}</span>
                       </div>
                       <div className="detail-row">
                         <span className="label">Cost:</span>
-                        <span className="value">${booking.service?.cost}</span>
+                        <span className="value">${booking.estimatedCost || booking.service?.baseCost || booking.service?.cost || 'N/A'}</span>
                       </div>
                       {booking.notes && (
                         <div className="detail-row">
@@ -707,7 +903,12 @@ const CarOwnerDashboard = () => {
                         </>
                       )}
                       {booking.status === 'completed' && (
-                        <button className="btn-primary">Leave Review</button>
+                        <button 
+                          className="btn-primary"
+                          onClick={() => setReviewBooking(booking)}
+                        >
+                          Leave Review
+                        </button>
                       )}
                       {booking.status === 'cancelled' && (
                         <button 
@@ -736,7 +937,7 @@ const CarOwnerDashboard = () => {
         {activeTab === 'booking' && (
           <div className="booking-tab">
             <div className="tab-header">
-              <h2>Book a Service</h2>
+              <h2>{rescheduleBookingId ? '🔄 Reschedule Appointment' : '📅 Book a Service'}</h2>
             </div>
             <div className="booking-form-container">
               <form className="booking-form" onSubmit={handleBookService}>
@@ -789,14 +990,43 @@ const CarOwnerDashboard = () => {
                             <h4>{service.serviceName}</h4>
                             <p>{service.description}</p>
                             <div className="service-meta">
-                              <span className="price">${service.cost}</span>
-                              <span className="duration">{service.duration} min</span>
+                              <span className="price">${service.baseCost || service.cost}</span>
+                              <span className="duration">{service.estimatedDuration || service.duration} min</span>
                             </div>
                           </div>
                         </label>
                       </div>
                     ))}
                   </div>
+                </div>
+
+                <div className="form-section">
+                  <h3>Select Mechanic *</h3>
+                  <div className="form-group">
+                    <select 
+                      className="form-select"
+                      value={newBooking.mechanic}
+                      onChange={(e) => setNewBooking({...newBooking, mechanic: e.target.value})}
+                      required
+                    >
+                      <option value="">Choose your mechanic</option>
+                      {Array.isArray(mechanics) && mechanics.map(mechanic => (
+                        <option key={mechanic._id} value={mechanic._id}>
+                          {mechanic.name}
+                          {mechanic.rating?.average > 0 && ` ⭐ ${mechanic.rating.average.toFixed(1)}`}
+                          {mechanic.experience > 0 && ` • ${mechanic.experience} years exp`}
+                          {mechanic.specialization && mechanic.specialization.length > 0 && 
+                            ` • ${mechanic.specialization.join(', ').replace(/_/g, ' ')}`
+                          }
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {mechanics.length === 0 && (
+                    <p className="form-help">
+                      ⚠️ No mechanics available. Please try again later.
+                    </p>
+                  )}
                 </div>
 
                 <div className="form-section">
@@ -853,16 +1083,19 @@ const CarOwnerDashboard = () => {
                   <button 
                     type="button" 
                     className="btn-secondary"
-                    onClick={() => setNewBooking({ vehicle: '', service: '', date: '', time: '', notes: '' })}
+                    onClick={() => {
+                      setNewBooking({ vehicle: '', service: '', mechanic: '', date: '', time: '', notes: '' });
+                      setRescheduleBookingId(null); // Clear reschedule mode
+                    }}
                   >
-                    Clear Form
+                    {rescheduleBookingId ? 'Cancel Reschedule' : 'Clear Form'}
                   </button>
                   <button 
                     type="submit" 
                     className="btn-primary"
-                    disabled={vehicles.length === 0}
+                    disabled={vehicles.length === 0 || mechanics.length === 0}
                   >
-                    Book Service
+                    {rescheduleBookingId ? 'Reschedule Appointment' : 'Book Service'}
                   </button>
                 </div>
               </form>
@@ -892,17 +1125,17 @@ const CarOwnerDashboard = () => {
             <div className="history-list">
               {getFilteredHistory().length > 0 ? (
                 getFilteredHistory().map(booking => (
-                  <div key={booking._id} className="history-item">
-                    <div className="history-date">
+                    <div key={booking._id} className="history-item">
+                      <div className="history-date">
                       <div className="date-main">
-                        {new Date(booking.date).toLocaleDateString()}
+                        {new Date(booking.bookingDate || booking.date).toLocaleDateString()}
                       </div>
                       <div className="date-time">
-                        {booking.time}
+                        {booking.bookingTime || booking.time}
                       </div>
-                    </div>
-                    <div className="history-details">
-                      <h4>{booking.service?.serviceName}</h4>
+                      </div>
+                      <div className="history-details">
+                        <h4>{booking.service?.serviceName}</h4>
                       <p className="vehicle-info">
                         <strong>{booking.vehicle?.make} {booking.vehicle?.model}</strong> ({booking.vehicle?.year})
                       </p>
@@ -914,17 +1147,22 @@ const CarOwnerDashboard = () => {
                           <span className="label">Notes:</span> {booking.notes}
                         </p>
                       )}
-                    </div>
-                    <div className="history-cost">
-                      <span className="cost-amount">${booking.service?.cost}</span>
+                      </div>
+                      <div className="history-cost">
+                      <span className="cost-amount">${booking.estimatedCost || booking.actualCost || booking.service?.baseCost || booking.service?.cost || '0'}</span>
                       <span className="cost-label">Total</span>
+                      </div>
+                      <div className="history-actions">
+                        <button className="btn-secondary">View Details</button>
+                        <button 
+                          className="btn-primary"
+                          onClick={() => setReviewBooking(booking)}
+                        >
+                          Leave Review
+                        </button>
+                      </div>
                     </div>
-                    <div className="history-actions">
-                      <button className="btn-secondary">View Details</button>
-                      <button className="btn-primary">Leave Review</button>
-                    </div>
-                  </div>
-                ))
+                  ))
               ) : (
                 <div className="empty-state">
                   <h3>No service history</h3>
@@ -948,6 +1186,17 @@ const CarOwnerDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Review Modal */}
+      {reviewBooking && (
+        <ReviewModal
+          booking={reviewBooking}
+          onClose={() => setReviewBooking(null)}
+          onSuccess={() => {
+            fetchDashboardData();
+          }}
+        />
+      )}
     </div>
   );
 };

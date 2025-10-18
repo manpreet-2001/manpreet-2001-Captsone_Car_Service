@@ -11,21 +11,52 @@ const MechanicDashboard = () => {
   const [appointments, setAppointments] = useState([]);
   const [services, setServices] = useState([]);
   const [schedule, setSchedule] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+  const [respondingToReview, setRespondingToReview] = useState(null);
+  const [reviewResponse, setReviewResponse] = useState('');
+  const [serviceForm, setServiceForm] = useState({
+    serviceName: '',
+    description: '',
+    category: 'maintenance',
+    subcategory: 'oil_change',
+    baseCost: '',
+    estimatedDuration: '',
+    costType: 'fixed'
+  });
 
   useEffect(() => {
     fetchDashboardData();
+    
+    // Auto-refresh data every 30 seconds
+    const interval = setInterval(() => {
+      fetchDashboardData();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [appointmentsRes, servicesRes] = await Promise.all([
-        axios.get('/bookings'),
-        axios.get('/services')
+      const [appointmentsRes, servicesRes, reviewsRes] = await Promise.all([
+        axios.get('/api/bookings?limit=100'),  // Increased limit to fetch all bookings
+        axios.get('/api/services?limit=100'),
+        axios.get(`/api/reviews?mechanic=${user._id}&limit=100`)
       ]);
       
-      setAppointments(appointmentsRes.data);
-      setServices(servicesRes.data.filter(service => service.mechanic === user._id));
+      const appointmentsData = Array.isArray(appointmentsRes.data) ? appointmentsRes.data : appointmentsRes.data?.data || [];
+      const servicesData = Array.isArray(servicesRes.data) ? servicesRes.data : servicesRes.data?.data || [];
+      const reviewsData = Array.isArray(reviewsRes.data) ? reviewsRes.data : reviewsRes.data?.data || [];
+      
+      setAppointments(appointmentsData);
+      // Fixed: Compare mechanic ID properly (handle both object and string)
+      setServices(servicesData.filter(service => {
+        const mechanicId = service.mechanic?._id || service.mechanic;
+        return mechanicId === user._id || mechanicId?.toString() === user._id;
+      }));
+      setReviews(reviewsData);
       
       // Generate sample schedule
       const today = new Date();
@@ -35,41 +66,164 @@ const MechanicDashboard = () => {
         date.setDate(today.getDate() + i);
         weekSchedule.push({
           date: date.toISOString().split('T')[0],
-          appointments: appointments.filter(apt => 
-            new Date(apt.date).toDateString() === date.toDateString()
-          )
+          appointments: appointmentsData.filter(apt => {
+            if (!apt) return false;
+            const aptDate = apt.bookingDate || apt.date;
+            if (!aptDate) return false;
+            return new Date(aptDate).toDateString() === date.toDateString();
+          })
         });
       }
       setSchedule(weekSchedule);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
+      // Set empty arrays on error to prevent filter errors
+      setAppointments([]);
+      setServices([]);
+      setSchedule([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const todayAppointments = appointments.filter(apt => 
-    new Date(apt.date).toDateString() === new Date().toDateString()
-  );
+  // Safe array operations with fallbacks
+  const todayAppointments = Array.isArray(appointments) ? appointments.filter(apt => {
+    if (!apt) return false;
+    const aptDate = apt.bookingDate || apt.date;
+    if (!aptDate) return false;
+    return new Date(aptDate).toDateString() === new Date().toDateString();
+  }) : [];
 
-  const pendingAppointments = appointments.filter(apt => apt.status === 'pending');
-  const confirmedAppointments = appointments.filter(apt => apt.status === 'confirmed');
+  const pendingAppointments = Array.isArray(appointments) ? appointments.filter(apt => 
+    apt && (apt.status === 'pending' || apt.status === 'rescheduled')
+  ) : [];
+  
+  const confirmedAppointments = Array.isArray(appointments) ? appointments.filter(apt => 
+    apt && apt.status === 'confirmed'
+  ) : [];
 
   const stats = {
-    totalAppointments: appointments.length,
+    totalAppointments: Array.isArray(appointments) ? appointments.length : 0,
     todayAppointments: todayAppointments.length,
     pendingAppointments: pendingAppointments.length,
-    completedServices: appointments.filter(apt => apt.status === 'completed').length,
-    totalServices: services.length
+    completedServices: Array.isArray(appointments) ? appointments.filter(apt => 
+      apt && apt.status === 'completed'
+    ).length : 0,
+    totalServices: Array.isArray(services) ? services.length : 0
   };
 
   const updateAppointmentStatus = async (appointmentId, status) => {
     try {
-      await axios.put(`/bookings/${appointmentId}/status`, { status });
+      await axios.put(`/api/bookings/${appointmentId}/status`, { status });
       fetchDashboardData(); // Refresh data
+      alert('Appointment status updated successfully!');
     } catch (error) {
       console.error('Failed to update appointment status:', error);
+      alert('Failed to update status: ' + (error.response?.data?.message || error.message));
     }
+  };
+
+  const handleAddService = () => {
+    setEditingService(null);
+    setServiceForm({
+      serviceName: '',
+      description: '',
+      category: 'maintenance',
+      subcategory: 'oil_change',
+      baseCost: '',
+      estimatedDuration: '',
+      costType: 'fixed'
+    });
+    setShowServiceModal(true);
+  };
+
+  const handleEditService = (service) => {
+    setEditingService(service);
+    setServiceForm({
+      serviceName: service.serviceName,
+      description: service.description,
+      category: service.category,
+      subcategory: service.subcategory || 'oil_change',
+      baseCost: service.baseCost,
+      estimatedDuration: service.estimatedDuration,
+      costType: service.costType || 'fixed'
+    });
+    setShowServiceModal(true);
+  };
+
+  const handleDeleteService = async (serviceId) => {
+    if (window.confirm('Are you sure you want to delete this service?')) {
+      try {
+        await axios.delete(`/api/services/${serviceId}`);
+        fetchDashboardData();
+        alert('Service deleted successfully!');
+      } catch (error) {
+        console.error('Failed to delete service:', error);
+        alert('Failed to delete service: ' + (error.response?.data?.message || error.message));
+      }
+    }
+  };
+
+  const handleServiceSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Ensure the service is visible to customers
+      const serviceData = {
+        ...serviceForm,
+        isAvailable: true,
+        isActive: true
+      };
+
+      if (editingService) {
+        // Update existing service
+        await axios.put(`/api/services/${editingService._id}`, serviceData);
+        alert('Service updated successfully!');
+      } else {
+        // Create new service
+        await axios.post('/api/services', serviceData);
+        alert('Service created successfully!');
+      }
+      setShowServiceModal(false);
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Failed to save service:', error);
+      alert('Failed to save service: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleReviewResponse = async (reviewId) => {
+    if (!reviewResponse.trim()) {
+      alert('Please enter a response');
+      return;
+    }
+
+    try {
+      await axios.put(`/api/reviews/${reviewId}`, {
+        mechanicResponse: {
+          comment: reviewResponse,
+          respondedAt: new Date()
+        }
+      });
+      alert('Response submitted successfully!');
+      setRespondingToReview(null);
+      setReviewResponse('');
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Failed to submit response:', error);
+      alert('Failed to submit response: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const renderStars = (rating) => {
+    const stars = [];
+    for (let i = 0; i < 5; i++) {
+      stars.push(
+        <span key={i} className={`star ${i < rating ? 'filled' : ''}`}>
+          ★
+        </span>
+      );
+    }
+    return stars;
   };
 
   if (loading) {
@@ -80,13 +234,18 @@ const MechanicDashboard = () => {
     <div className="mechanic-dashboard">
       <div className="dashboard-header">
         <div className="header-content">
-          <h1>Mechanic Portal</h1>
-          <p>Welcome back, {user?.name}. Manage your appointments and services.</p>
-        </div>
-        <div className="header-actions">
-          <button className="btn-primary" onClick={() => setActiveTab('services')}>
-            Manage Services
-          </button>
+          <div className="header-text">
+            <h1>Mechanic Portal</h1>
+            <p>Welcome back, {user?.name}. Manage your appointments and services.</p>
+          </div>
+          <div className="header-actions">
+            <button className="btn-secondary" onClick={fetchDashboardData} style={{marginRight: '12px'}}>
+              🔄 Refresh
+            </button>
+            <button className="btn-primary" onClick={() => setActiveTab('services')}>
+              Manage Services
+            </button>
+          </div>
         </div>
       </div>
 
@@ -114,6 +273,12 @@ const MechanicDashboard = () => {
           onClick={() => setActiveTab('schedule')}
         >
           Schedule
+        </button>
+        <button 
+          className={activeTab === 'reviews' ? 'nav-btn active' : 'nav-btn'}
+          onClick={() => setActiveTab('reviews')}
+        >
+          Reviews
         </button>
       </div>
 
@@ -153,73 +318,77 @@ const MechanicDashboard = () => {
 
             <div className="overview-grid">
               <div className="overview-card">
-                <h3>Today's Schedule</h3>
-                <div className="appointments-list">
-                  {todayAppointments.length > 0 ? (
-                    todayAppointments.map(appointment => (
-                      <div key={appointment._id} className="appointment-item">
-                        <div className="appointment-time">
-                          {appointment.time}
-                        </div>
-                        <div className="appointment-details">
-                          <strong>{appointment.service?.serviceName}</strong>
-                          <span>{appointment.owner?.name}</span>
-                          <span>{appointment.vehicle?.make} {appointment.vehicle?.model}</span>
-                        </div>
-                        <div className="appointment-actions">
-                          <button 
-                            className="btn-success btn-sm"
-                            onClick={() => updateAppointmentStatus(appointment._id, 'confirmed')}
-                          >
-                            Confirm
-                          </button>
-                          <button 
-                            className="btn-danger btn-sm"
-                            onClick={() => updateAppointmentStatus(appointment._id, 'cancelled')}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="no-data">No appointments scheduled for today</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="overview-card">
-                <h3>Pending Requests</h3>
+                <h3>📋 Pending Requests (Need Your Action)</h3>
                 <div className="pending-list">
                   {pendingAppointments.length > 0 ? (
                     pendingAppointments.map(appointment => (
                       <div key={appointment._id} className="pending-item">
                         <div className="pending-date">
-                          {new Date(appointment.date).toLocaleDateString()}
+                          <div className="date-main">{appointment.bookingDate ? new Date(appointment.bookingDate).toLocaleDateString() : 'TBD'}</div>
+                          <div className="date-time">{appointment.bookingTime || appointment.time || 'TBD'}</div>
                         </div>
                         <div className="pending-details">
-                          <strong>{appointment.service?.serviceName}</strong>
-                          <span>{appointment.owner?.name}</span>
-                          <span>{appointment.vehicle?.make} {appointment.vehicle?.model}</span>
+                          <strong>
+                            {appointment.service?.serviceName}
+                            {appointment.status === 'rescheduled' && <span className="rescheduled-badge">🔄 Rescheduled</span>}
+                          </strong>
+                          <span>👤 {appointment.owner?.name}</span>
+                          <span>🚗 {appointment.vehicle?.make} {appointment.vehicle?.model}</span>
+                          <span>💰 ${appointment.estimatedCost || appointment.service?.baseCost || 'N/A'}</span>
                         </div>
                         <div className="pending-actions">
                           <button 
                             className="btn-success btn-sm"
                             onClick={() => updateAppointmentStatus(appointment._id, 'confirmed')}
                           >
-                            Accept
+                            ✓ Accept
                           </button>
                           <button 
                             className="btn-danger btn-sm"
                             onClick={() => updateAppointmentStatus(appointment._id, 'cancelled')}
                           >
-                            Decline
+                            ✗ Decline
                           </button>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <p className="no-data">No pending requests</p>
+                    <div className="no-data">
+                      <p>🎉 All caught up! No pending requests.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="overview-card">
+                <h3>✅ Confirmed Appointments (Next 3)</h3>
+                <div className="appointments-list">
+                  {confirmedAppointments.length > 0 ? (
+                    confirmedAppointments.slice(0, 3).map(appointment => (
+                      <div key={appointment._id} className="appointment-item">
+                        <div className="appointment-time">
+                          <div className="time-main">{appointment.bookingTime || appointment.time || 'N/A'}</div>
+                          <div className="time-date">{appointment.bookingDate ? new Date(appointment.bookingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}</div>
+                        </div>
+                        <div className="appointment-details">
+                          <strong>{appointment.service?.serviceName}</strong>
+                          <span>👤 {appointment.owner?.name}</span>
+                          <span>🚗 {appointment.vehicle?.make} {appointment.vehicle?.model}</span>
+                        </div>
+                        <div className="appointment-actions">
+                          <button 
+                            className="btn-primary btn-sm"
+                            onClick={() => updateAppointmentStatus(appointment._id, 'completed')}
+                          >
+                            ✓ Complete
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="no-data">
+                      <p>No confirmed appointments yet</p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -239,7 +408,7 @@ const MechanicDashboard = () => {
               </div>
             </div>
             <div className="appointments-grid">
-              {appointments.length > 0 ? (
+              {Array.isArray(appointments) && appointments.length > 0 ? (
                 appointments.map(appointment => (
                   <div key={appointment._id} className="appointment-card">
                     <div className="appointment-header">
@@ -257,15 +426,15 @@ const MechanicDashboard = () => {
                     <div className="appointment-details">
                       <div className="detail-row">
                         <span className="label">Date:</span>
-                        <span className="value">{new Date(appointment.date).toLocaleDateString()}</span>
+                        <span className="value">{appointment.bookingDate ? new Date(appointment.bookingDate).toLocaleDateString() : 'N/A'}</span>
                       </div>
                       <div className="detail-row">
                         <span className="label">Time:</span>
-                        <span className="value">{appointment.time}</span>
+                        <span className="value">{appointment.bookingTime || appointment.time || 'N/A'}</span>
                       </div>
                       <div className="detail-row">
                         <span className="label">Cost:</span>
-                        <span className="value">${appointment.service?.cost}</span>
+                        <span className="value">${appointment.estimatedCost || appointment.service?.baseCost || appointment.service?.cost || 'N/A'}</span>
                       </div>
                       {appointment.notes && (
                         <div className="detail-row">
@@ -316,7 +485,9 @@ const MechanicDashboard = () => {
           <div className="services-tab">
             <div className="tab-header">
               <h2>My Services</h2>
-              <button className="btn-primary">Add Service</button>
+              <button className="btn-primary" onClick={handleAddService}>
+                Add Service
+              </button>
             </div>
             <div className="services-grid">
               {services.length > 0 ? (
@@ -324,20 +495,36 @@ const MechanicDashboard = () => {
                   <div key={service._id} className="service-card">
                     <div className="service-header">
                       <h3>{service.serviceName}</h3>
-                      <span className={`service-status ${service.available ? 'available' : 'unavailable'}`}>
-                        {service.available ? 'Available' : 'Unavailable'}
+                      <span className={`service-status ${service.isAvailable ? 'available' : 'unavailable'}`}>
+                        {service.isAvailable ? 'Available' : 'Unavailable'}
                       </span>
                     </div>
                     <div className="service-details">
                       <p>{service.description}</p>
                       <div className="service-meta">
-                        <span className="price">${service.cost}</span>
-                        <span className="duration">{service.duration} min</span>
+                        <span className="price">${service.baseCost || service.cost}</span>
+                        <span className="duration">{service.estimatedDuration || service.duration} min</span>
+                        <span className="category">{service.category}</span>
                       </div>
+                      {service.rating && service.rating.count > 0 && (
+                        <div className="service-rating">
+                          ⭐ {service.rating.average.toFixed(1)} ({service.rating.count} reviews)
+                        </div>
+                      )}
                     </div>
                     <div className="service-actions">
-                      <button className="btn-secondary">Edit</button>
-                      <button className="btn-danger">Delete</button>
+                      <button 
+                        className="btn-secondary"
+                        onClick={() => handleEditService(service)}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        className="btn-danger"
+                        onClick={() => handleDeleteService(service._id)}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 ))
@@ -345,7 +532,9 @@ const MechanicDashboard = () => {
                 <div className="empty-state">
                   <h3>No services added yet</h3>
                   <p>Add your first service to start receiving bookings</p>
-                  <button className="btn-primary">Add Service</button>
+                  <button className="btn-primary" onClick={handleAddService}>
+                    Add Service
+                  </button>
                 </div>
               )}
             </div>
@@ -371,11 +560,11 @@ const MechanicDashboard = () => {
                       day: 'numeric'
                     })}</h4>
                     <span className="appointment-count">
-                      {day.appointments.length} appointments
+                      {Array.isArray(day.appointments) ? day.appointments.length : 0} appointments
                     </span>
                   </div>
                   <div className="day-appointments">
-                    {day.appointments.length > 0 ? (
+                    {Array.isArray(day.appointments) && day.appointments.length > 0 ? (
                       day.appointments.map(appointment => (
                         <div key={appointment._id} className="schedule-appointment">
                           <div className="appointment-time">{appointment.time}</div>
@@ -392,7 +581,230 @@ const MechanicDashboard = () => {
             </div>
           </div>
         )}
+
+        {activeTab === 'reviews' && (
+          <div className="reviews-tab">
+            <div className="tab-header">
+              <h2>Customer Reviews</h2>
+              <div className="review-stats">
+                {user.rating && user.rating.count > 0 && (
+                  <>
+                    <div className="avg-rating">
+                      <span className="rating-number">{user.rating.average.toFixed(1)}</span>
+                      <div className="stars">{renderStars(Math.round(user.rating.average))}</div>
+                    </div>
+                    <span className="review-count">{user.rating.count} reviews</span>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="reviews-list">
+              {Array.isArray(reviews) && reviews.length > 0 ? (
+                reviews.map(review => (
+                  <div key={review._id} className="review-card">
+                    <div className="review-header">
+                      <div className="review-info">
+                        <h4>{review.customer?.name || 'Anonymous'}</h4>
+                        <div className="stars">{renderStars(review.rating)}</div>
+                        <span className="review-date">
+                          {new Date(review.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="review-service">
+                        <span className="service-badge">{review.service?.serviceName}</span>
+                      </div>
+                    </div>
+                    <div className="review-content">
+                      <p className="review-comment">{review.comment}</p>
+                      
+                      {review.detailedRatings && Object.keys(review.detailedRatings).length > 0 && (
+                        <div className="detailed-ratings">
+                          <h5>Detailed Ratings:</h5>
+                          <div className="rating-grid">
+                            {Object.entries(review.detailedRatings).map(([key, value]) => (
+                              <div key={key} className="rating-detail">
+                                <span className="rating-label">{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                                <span className="rating-value">{value}/5</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {review.tags && review.tags.length > 0 && (
+                        <div className="review-tags">
+                          {review.tags.map((tag, idx) => (
+                            <span key={idx} className="review-tag">
+                              {tag.replace('_', ' ')}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {review.mechanicResponse && review.mechanicResponse.comment ? (
+                        <div className="mechanic-response">
+                          <div className="response-header">
+                            <strong>Your Response:</strong>
+                            <span className="response-date">
+                              {new Date(review.mechanicResponse.respondedAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p>{review.mechanicResponse.comment}</p>
+                        </div>
+                      ) : respondingToReview === review._id ? (
+                        <div className="response-form">
+                          <textarea
+                            className="form-textarea"
+                            rows="3"
+                            placeholder="Write your response..."
+                            value={reviewResponse}
+                            onChange={(e) => setReviewResponse(e.target.value)}
+                          />
+                          <div className="response-actions">
+                            <button 
+                              className="btn-secondary btn-sm"
+                              onClick={() => {
+                                setRespondingToReview(null);
+                                setReviewResponse('');
+                              }}
+                            >
+                              Cancel
+                            </button>
+                            <button 
+                              className="btn-primary btn-sm"
+                              onClick={() => handleReviewResponse(review._id)}
+                            >
+                              Submit Response
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button 
+                          className="btn-secondary btn-sm"
+                          onClick={() => setRespondingToReview(review._id)}
+                        >
+                          Respond to Review
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-state">
+                  <h3>No reviews yet</h3>
+                  <p>Customer reviews will appear here once you complete services</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Service Modal */}
+      {showServiceModal && (
+        <div className="modal-overlay" onClick={() => setShowServiceModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{editingService ? 'Edit Service' : 'Add New Service'}</h3>
+              <button className="close-btn" onClick={() => setShowServiceModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleServiceSubmit}>
+              <div className="form-group">
+                <label>Service Name *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={serviceForm.serviceName}
+                  onChange={(e) => setServiceForm({...serviceForm, serviceName: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Description *</label>
+                <textarea
+                  className="form-textarea"
+                  rows="3"
+                  value={serviceForm.description}
+                  onChange={(e) => setServiceForm({...serviceForm, description: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Category *</label>
+                  <select
+                    className="form-select"
+                    value={serviceForm.category}
+                    onChange={(e) => setServiceForm({...serviceForm, category: e.target.value})}
+                    required
+                  >
+                    <option value="maintenance">Maintenance</option>
+                    <option value="repair">Repair</option>
+                    <option value="inspection">Inspection</option>
+                    <option value="diagnostic">Diagnostic</option>
+                    <option value="emergency">Emergency</option>
+                    <option value="preventive">Preventive</option>
+                    <option value="cosmetic">Cosmetic</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Subcategory</label>
+                  <select
+                    className="form-select"
+                    value={serviceForm.subcategory}
+                    onChange={(e) => setServiceForm({...serviceForm, subcategory: e.target.value})}
+                  >
+                    <option value="oil_change">Oil Change</option>
+                    <option value="brake_service">Brake Service</option>
+                    <option value="tire_service">Tire Service</option>
+                    <option value="engine_repair">Engine Repair</option>
+                    <option value="transmission">Transmission</option>
+                    <option value="electrical">Electrical</option>
+                    <option value="ac_service">AC Service</option>
+                    <option value="exhaust">Exhaust</option>
+                    <option value="suspension">Suspension</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Base Cost ($) *</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    min="0"
+                    step="0.01"
+                    value={serviceForm.baseCost}
+                    onChange={(e) => setServiceForm({...serviceForm, baseCost: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Duration (minutes) *</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    min="15"
+                    max="480"
+                    value={serviceForm.estimatedDuration}
+                    onChange={(e) => setServiceForm({...serviceForm, estimatedDuration: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="form-actions">
+                <button type="button" className="btn-secondary" onClick={() => setShowServiceModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  {editingService ? 'Update Service' : 'Create Service'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

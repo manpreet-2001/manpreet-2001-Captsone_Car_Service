@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const { generateToken } = require('../middleware/auth');
 const { validationResult } = require('express-validator');
+const emailService = require('../utils/emailService');
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -30,6 +31,15 @@ const register = async (req, res) => {
 
     // Generate token
     const token = generateToken(user._id);
+
+    // Send welcome email
+    try {
+      await emailService.sendWelcomeEmail(user);
+      console.log(`✅ Welcome email sent to ${user.email}`);
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+      // Don't fail registration if email fails
+    }
 
     res.status(201).json({
       success: true,
@@ -82,6 +92,18 @@ const login = async (req, res) => {
 
     // Generate token
     const token = generateToken(user._id);
+
+    // Send login notification (optional - can be disabled if too many emails)
+    try {
+      // Only send login notification if LOGIN_EMAIL_NOTIFICATION is enabled
+      if (process.env.LOGIN_EMAIL_NOTIFICATION === 'true') {
+        await emailService.sendLoginNotification(user, req);
+        console.log(`✅ Login notification sent to ${user.email}`);
+      }
+    } catch (emailError) {
+      console.error('Failed to send login notification:', emailError);
+      // Don't fail login if email fails
+    }
 
     res.json({
       success: true,

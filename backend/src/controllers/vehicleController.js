@@ -98,6 +98,11 @@ const createVehicle = async (req, res) => {
     // Add owner to request body
     req.body.owner = req.user.id;
 
+    // Fix empty VIN issue - convert empty string to undefined
+    if (req.body.vin === '' || req.body.vin === null) {
+      delete req.body.vin; // Remove empty VIN to avoid duplicate key error
+    }
+
     const vehicle = await Vehicle.create(req.body);
 
     // Populate owner information
@@ -148,6 +153,11 @@ const updateVehicle = async (req, res) => {
         success: false,
         message: 'Not authorized to update this vehicle'
       });
+    }
+
+    // Fix empty VIN issue - convert empty string to undefined
+    if (req.body.vin === '' || req.body.vin === null) {
+      delete req.body.vin; // Remove empty VIN to avoid duplicate key error
     }
 
     vehicle = await Vehicle.findByIdAndUpdate(

@@ -2,13 +2,14 @@ const Booking = require('../models/Booking');
 const Vehicle = require('../models/Vehicle');
 const Service = require('../models/Service');
 const User = require('../models/User');
+const emailService = require('../utils/emailService');
 
 // @desc    Get all bookings
 // @route   GET /api/bookings
 // @access  Private
 const getBookings = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, date, role } = req.query;
+    const { page = 1, limit = 100, status, date, role } = req.query;  // Increased default limit
     const skip = (page - 1) * limit;
     
     let query = {};
@@ -133,7 +134,7 @@ const createBooking = async (req, res) => {
     if (!service) {
       return res.status(400).json({
         success: false,
-        message: 'Service not found'
+        message: 'Service not found. Please make sure services are created in the system.'
       });
     }
 
@@ -145,11 +146,45 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // Set mechanic from service
-    req.body.mechanic = service.mechanic;
+    // Check if mechanic is provided (user-selected) or use service mechanic as fallback
+    let selectedMechanic = req.body.mechanic;
+    
+    if (!selectedMechanic && service.mechanic) {
+      // Fallback to service mechanic if no mechanic selected
+      selectedMechanic = service.mechanic;
+    }
+    
+    if (!selectedMechanic) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select a mechanic for this service.'
+      });
+    }
+
+    // Verify mechanic exists and is active
+    const mechanic = await User.findOne({ 
+      _id: selectedMechanic, 
+      role: 'mechanic',
+      status: 'active'
+    });
+    
+    if (!mechanic) {
+      return res.status(400).json({
+        success: false,
+        message: 'Selected mechanic is not available.'
+      });
+    }
+
+    // Set booking data
+    req.body.mechanic = selectedMechanic;
     req.body.owner = req.user.id;
     req.body.estimatedCost = service.baseCost;
     req.body.estimatedDuration = service.estimatedDuration;
+    
+    // Set garage if service has one
+    if (service.garage) {
+      req.body.garage = service.garage;
+    }
 
     // Check for conflicting bookings
     const bookingDateTime = new Date(req.body.bookingDate);
@@ -159,7 +194,7 @@ const createBooking = async (req, res) => {
     const endDateTime = new Date(bookingDateTime.getTime() + (service.estimatedDuration * 60000));
 
     const conflictingBooking = await Booking.findOne({
-      mechanic: service.mechanic,
+      mechanic: selectedMechanic,
       status: { $in: ['confirmed', 'in_progress'] },
       $or: [
         {
@@ -196,6 +231,14 @@ const createBooking = async (req, res) => {
       $inc: { totalBookings: 1 }
     });
 
+    // Send email notifications
+    try {
+      await emailService.sendBookingCreatedEmails(booking);
+    } catch (emailError) {
+      console.error('Failed to send booking emails:', emailError);
+      // Don't fail the booking if email fails
+    }
+
     res.status(201).json({
       success: true,
       message: 'Booking created successfully',
@@ -203,9 +246,10 @@ const createBooking = async (req, res) => {
     });
   } catch (error) {
     console.error('Create booking error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Failed to create booking',
+      message: 'Failed to create booking: ' + error.message,
       error: error.message
     });
   }
@@ -264,6 +308,21 @@ const updateBookingStatus = async (req, res) => {
       { path: 'vehicle', select: 'make model year licensePlate' },
       { path: 'service', select: 'serviceName category baseCost estimatedDuration' }
     ]);
+
+    // Send email notifications based on status
+    try {
+      if (status === 'confirmed') {
+        await emailService.sendBookingConfirmedEmail(updatedBooking);
+      } else if (status === 'cancelled') {
+        const cancelledBy = req.user.role === 'owner' ? 'customer' : 'mechanic';
+        await emailService.sendBookingCancelledEmail(updatedBooking, cancelledBy);
+      } else if (status === 'completed') {
+        await emailService.sendBookingCompletedEmail(updatedBooking);
+      }
+    } catch (emailError) {
+      console.error('Failed to send status update email:', emailError);
+      // Don't fail the status update if email fails
+    }
 
     res.json({
       success: true,
@@ -332,6 +391,18 @@ const rescheduleBooking = async (req, res) => {
       { path: 'vehicle', select: 'make model year licensePlate' },
       { path: 'service', select: 'serviceName category baseCost estimatedDuration' }
     ]);
+
+    // Send reschedule email notification
+    try {
+      await emailService.sendBookingRescheduledEmail(
+        updatedBooking,
+        booking.bookingDate,
+        booking.bookingTime
+      );
+    } catch (emailError) {
+      console.error('Failed to send reschedule email:', emailError);
+      // Don't fail the reschedule if email fails
+    }
 
     res.json({
       success: true,

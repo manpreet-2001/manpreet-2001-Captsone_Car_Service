@@ -11,7 +11,7 @@ export const useAuth = () => {
   return context;
 };
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 // Configure axios defaults
 axios.defaults.baseURL = API_BASE_URL;
@@ -50,12 +50,30 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          const response = await axios.get('/auth/me');
-          setUser(response.data.user);
+          console.log('Checking authentication with token...');
+          const response = await axios.get('/api/auth/me');
+          console.log('Auth check response:', response.data);
+          
+          if (response.data.success && response.data.user) {
+            setUser(response.data.user);
+            console.log('User authenticated:', response.data.user.name);
+          } else {
+            console.warn('Auth response missing user data');
+            localStorage.removeItem('token');
+            delete axios.defaults.headers.common['Authorization'];
+          }
         } catch (error) {
           console.error('Auth check failed:', error);
-          localStorage.removeItem('token');
-          delete axios.defaults.headers.common['Authorization'];
+          console.error('Error details:', error.response?.data);
+          // Only remove token if it's actually invalid (401)
+          if (error.response?.status === 401) {
+            console.log('Token is invalid, logging out');
+            localStorage.removeItem('token');
+            delete axios.defaults.headers.common['Authorization'];
+          } else {
+            console.warn('Auth check failed but token might still be valid - keeping user logged in');
+            // Don't log out on network errors or server errors
+          }
         }
       }
       setLoading(false);
@@ -69,7 +87,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.post('/auth/login', {
+      const response = await axios.post('/api/auth/login', {
         email,
         password
       });
@@ -95,7 +113,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.post('/auth/register', userData);
+      const response = await axios.post('/api/auth/register', userData);
       
       const { token, user } = response.data;
       

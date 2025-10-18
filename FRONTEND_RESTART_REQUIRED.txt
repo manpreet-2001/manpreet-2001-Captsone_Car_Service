@@ -1,0 +1,146 @@
+╔══════════════════════════════════════════════════════════════════╗
+║          WHY BOOKING WENT TO OWEN (NOT GARY)                     ║
+╚══════════════════════════════════════════════════════════════════╝
+
+❌ PROBLEM:
+You selected Gary, but email sent to Owen@gmail.com
+
+🔍 WHY THIS HAPPENED:
+
+1. Frontend is running OLD code (started before we added mechanic selection)
+2. Old booking form doesn't have mechanic dropdown
+3. Old code doesn't send mechanic field in request
+4. Backend receives booking WITHOUT mechanic field
+5. Backend falls back to service.mechanic (Owen)
+6. Email goes to Owen ❌
+
+═══════════════════════════════════════════════════════════════════
+
+✅ THE FIX:
+
+STEP 1: STOP FRONTEND
+──────────────────────
+Find your frontend terminal window (where npm start is running)
+Press: Ctrl+C
+
+STEP 2: RESTART FRONTEND
+────────────────────────
+npm start
+
+STEP 3: WAIT FOR IT TO LOAD
+────────────────────────────
+Look for:
+  Compiled successfully!
+  webpack compiled with 0 warnings
+  
+  You can now view frontend in the browser.
+  Local: http://localhost:3000
+
+STEP 4: REFRESH BROWSER
+────────────────────────
+Press F5 or Ctrl+Shift+R (hard refresh)
+
+STEP 5: LOGIN AGAIN
+────────────────────
+Login as Manpreet or Saahil
+
+STEP 6: GO TO "BOOK SERVICE"
+─────────────────────────────
+Click "Book Service" tab
+
+STEP 7: YOU'LL NOW SEE:
+────────────────────────
+✅ Select Vehicle
+✅ Select Service
+✅ Select Mechanic ← THIS IS NEW!
+✅ Select Date & Time
+
+STEP 8: TRY AGAIN
+──────────────────
+1. Select: Transmission Service
+2. Select: Gary ← Choose Gary!
+3. Select: Date and time
+4. Submit
+
+STEP 9: CHECK CONSOLE
+──────────────────────
+Backend will show:
+✅ Email sent to customer@gmail.com: Booking Confirmation
+✅ Email sent to gary@gmail.com: New Booking Request ← GARY!
+
+═══════════════════════════════════════════════════════════════════
+
+🎯 HOW TO VERIFY IT'S WORKING:
+
+BEFORE FRONTEND RESTART:
+  - No mechanic dropdown in booking form ❌
+  - Bookings auto-go to Owen ❌
+
+AFTER FRONTEND RESTART:
+  - Mechanic dropdown appears! ✅
+  - You can select Gary, Owen, Mike, etc. ✅
+  - Booking goes to selected mechanic! ✅
+  - Email goes to selected mechanic! ✅
+
+═══════════════════════════════════════════════════════════════════
+
+📋 QUICK CHECKLIST:
+
+Frontend Restart:
+  [ ] Stop frontend (Ctrl+C)
+  [ ] Start frontend (npm start)
+  [ ] Wait for "Compiled successfully!"
+  [ ] Refresh browser (F5)
+  [ ] Login as customer
+  [ ] Go to "Book Service"
+  [ ] SEE mechanic dropdown ✅
+
+Test Booking:
+  [ ] Select service
+  [ ] SELECT GARY in mechanic dropdown
+  [ ] Choose date/time
+  [ ] Submit
+  [ ] Watch console
+  [ ] See: "Email sent to gary@gmail.com"
+  [ ] Login as Gary
+  [ ] See booking in Gary's dashboard ✅
+
+═══════════════════════════════════════════════════════════════════
+
+💡 WHY RESTART IS NEEDED:
+
+Frontend (React) loads code once when it starts:
+  - Started at 10:00 → Loaded old code (no mechanic selection)
+  - We added feature at 10:30 → Frontend still has old code
+  - User books at 10:35 → Uses old code (no mechanic field)
+  - Restart at 10:40 → Loads new code (with mechanic selection)
+  - User books at 10:45 → Uses new code (mechanic field sent!)
+
+═══════════════════════════════════════════════════════════════════
+
+🎊 AFTER RESTART YOU'LL HAVE:
+
+✅ Mechanic selection dropdown
+✅ Choose Owen, Gary, or any mechanic
+✅ Booking goes to YOUR selected mechanic
+✅ Email goes to YOUR selected mechanic
+✅ Fair distribution of bookings
+✅ Works for any number of mechanics
+
+═══════════════════════════════════════════════════════════════════
+
+TL;DR:
+1. Ctrl+C in frontend terminal
+2. npm start
+3. Refresh browser (F5)
+4. Book service → SELECT GARY
+5. Check backend console
+6. Should show: "Email sent to gary@gmail.com" ✅
+
+═══════════════════════════════════════════════════════════════════
+
+DO THIS NOW:
+Stop frontend (Ctrl+C) → npm start → Try booking again!
+
+The mechanic selection will work! 🚀
+

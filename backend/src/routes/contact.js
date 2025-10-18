@@ -9,3 +9,4 @@ router.get('/info', getContactInfo);
 router.post('/', validateContact, sendContactMessage);
 
 module.exports = router;
+

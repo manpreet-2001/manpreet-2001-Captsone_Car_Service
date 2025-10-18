@@ -10,6 +10,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ServicesPage from './pages/ServicesPage';
 import AboutPage from './pages/AboutPage';
+import AdminDashboard from './pages/AdminDashboard';
 import ContactPage from './pages/ContactPage';
 import CarOwnerDashboard from './pages/CarOwnerDashboard';
 import MechanicDashboard from './pages/MechanicDashboard';
@@ -45,7 +46,7 @@ function App() {
               } />
               <Route path="/admin-dashboard" element={
                 <ProtectedRoute allowedRoles={['admin']}>
-                  <div className="coming-soon">Admin Dashboard - Coming Soon</div>
+                  <AdminDashboard />
                 </ProtectedRoute>
               } />
               

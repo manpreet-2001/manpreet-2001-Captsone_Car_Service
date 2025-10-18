@@ -37,7 +37,8 @@ const vehicleSchema = new mongoose.Schema({
     unique: true,
     sparse: true, // Allows null values while maintaining uniqueness
     trim: true,
-    match: [/^[A-HJ-NPR-Z0-9]{17}$/, 'Invalid VIN format']
+    uppercase: true // Automatically convert to uppercase
+    // No validation - VIN is completely optional
   },
   color: {
     type: String,
@@ -111,10 +112,8 @@ const vehicleSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for efficient queries
+// Index for efficient queries (unique indexes are already defined in schema)
 vehicleSchema.index({ owner: 1, licensePlate: 1 });
-vehicleSchema.index({ licensePlate: 1 });
-vehicleSchema.index({ vin: 1 });
 
 // Virtual for full vehicle name
 vehicleSchema.virtual('fullName').get(function() {

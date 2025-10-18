@@ -80,9 +80,8 @@ const validateVehicle = [
     .isLength({ min: 1, max: 20 })
     .withMessage('License plate is required and must be less than 20 characters'),
   body('vin')
-    .optional()
-    .matches(/^[A-HJ-NPR-Z0-9]{17}$/)
-    .withMessage('VIN must be exactly 17 characters'),
+    .optional({ nullable: true, checkFalsy: true }),
+    // VIN is completely optional - no validation
   body('color')
     .optional()
     .trim()
