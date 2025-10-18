@@ -69,7 +69,7 @@ Add each of these:
 
 ```
 MONGODB_URI
-mongodb+srv://carservice_admin:YOUR_PASSWORD@cluster.mongodb.net/carservice
+mongodb+srv://username:password@cluster.mongodb.net/carservice
 
 JWT_SECRET
 your_super_secret_jwt_key_change_this_to_something_random

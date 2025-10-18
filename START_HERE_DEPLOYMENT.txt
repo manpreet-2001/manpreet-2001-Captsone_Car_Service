@@ -70,7 +70,7 @@ STEP 2: MONGODB ATLAS (Database)
 5. Get connection string:
    - Click "Connect" → "Connect your application"
    - Copy URL:
-     mongodb+srv://carservice:PASSWORD@cluster.mongodb.net/carservice
+     mongodb+srv://[username]:[password]@cluster.mongodb.net/carservice
 
 ✅ Database URL saved!
 

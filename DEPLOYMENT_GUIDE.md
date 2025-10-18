@@ -113,9 +113,10 @@ Copy and run those commands!
    - Choose: **"Connect your application"**
    - Copy connection string:
    ```
-   mongodb+srv://carservice:<password>@cluster0.xxxxx.mongodb.net/carservice?retryWrites=true&w=majority
+   mongodb+srv://username:<password>@cluster0.xxxxx.mongodb.net/carservice?retryWrites=true&w=majority
    ```
    - Replace `<password>` with your actual password
+   - Replace `username` with your database username
    - Save this for later!
 
 ---

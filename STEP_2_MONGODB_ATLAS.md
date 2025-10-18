@@ -123,7 +123,7 @@ After cluster is ready:
    mongodb+srv://carservice_admin:<password>@car-service-cluster.xxxxx.mongodb.net/?retryWrites=true&w=majority
 
    Replace <password> with your actual password:
-   mongodb+srv://carservice_admin:X8mK2pL9qR4nT6vY@car-service-cluster.xxxxx.mongodb.net/carservice?retryWrites=true&w=majority
+   mongodb+srv://carservice_admin:YOUR_PASSWORD_HERE@car-service-cluster.xxxxx.mongodb.net/carservice?retryWrites=true&w=majority
    ```
 
    **Add database name:** `/carservice` before the `?`
@@ -137,7 +137,7 @@ After cluster is ready:
 Update your local `.env`:
 
 ```env
-MONGODB_URI=mongodb+srv://carservice_admin:YOUR_PASSWORD@car-service-cluster.xxxxx.mongodb.net/carservice?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/carservice?retryWrites=true&w=majority
 ```
 
 Then restart backend:
@@ -168,9 +168,9 @@ MongoDB Connected: car-service-cluster-shard-00-00.xxxxx.mongodb.net
 ## 📝 SAVE THESE VALUES:
 
 ```
-Database URL: mongodb+srv://carservice_admin:PASSWORD@cluster.mongodb.net/carservice
+Database URL: mongodb+srv://[username]:[password]@cluster.mongodb.net/carservice
 Username: carservice_admin
-Password: [Your generated password]
+Password: [Your generated password - DO NOT COMMIT]
 Cluster Name: car-service-cluster
 ```
 
