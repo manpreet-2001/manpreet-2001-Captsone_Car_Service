@@ -90,7 +90,7 @@ const PORT = process.env.PORT || 5000;
 
 connectDB().then(async () => {
   // Verify email configuration
-  await verifyEmailConfig();
+
   
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
