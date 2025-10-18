@@ -93,8 +93,8 @@ STEP 3: RENDER (Backend)
    
    MONGODB_URI = [Your Atlas connection string]
    JWT_SECRET = create_random_secret_here
-   EMAIL_USER = manpreet123singh987@gmail.com
-   EMAIL_PASSWORD = plsohynfxgbdkapo
+   EMAIL_USER = your-email@gmail.com
+   EMAIL_PASSWORD = your-16-char-app-password
    EMAIL_SERVICE = gmail
    EMAIL_FROM_NAME = Car Service Platform
    NODE_ENV = production

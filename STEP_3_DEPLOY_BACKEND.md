@@ -87,19 +87,19 @@ EMAIL_SERVICE
 gmail
 
 EMAIL_USER
-manpreet123singh987@gmail.com
+your-email@gmail.com
 
 EMAIL_PASSWORD
-plsohynfxgbdkapo
+your-16-character-app-password
 
 EMAIL_FROM_NAME
 Car Service Platform
 
 EMAIL_FROM
-manpreet123singh987@gmail.com
+your-email@gmail.com
 
 EMAIL_REPLY_TO
-manpreet123singh987@gmail.com
+your-email@gmail.com
 
 FRONTEND_URL
 https://your-app-name.vercel.app

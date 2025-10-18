@@ -222,10 +222,10 @@ System sends:
 Edit `src/utils/testBookingFlow.js`:
 ```javascript
 owner: {
-  email: 'customer@gmail.com'  // Customer gets email here
+  email: 'customer@example.com'  // Customer gets email here
 },
 mechanic: {
-  email: 'mechanic@gmail.com'  // Mechanic gets email here
+  email: 'mechanic@example.com'  // Mechanic gets email here
 }
 ```
 
