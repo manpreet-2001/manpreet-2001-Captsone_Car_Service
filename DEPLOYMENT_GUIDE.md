@@ -155,10 +155,10 @@ Copy and run those commands!
    PORT=5000
    NODE_ENV=production
    
-   # Email Configuration
+   # Email (use your Gmail)
    EMAIL_SERVICE=gmail
    EMAIL_USER=your-email@gmail.com
-   EMAIL_PASSWORD=get-from-google-app-passwords
+   EMAIL_PASSWORD=your-16-char-app-password
    EMAIL_FROM_NAME=Car Service Platform
    EMAIL_FROM=your-email@gmail.com
    EMAIL_REPLY_TO=your-email@gmail.com
