@@ -22,6 +22,13 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [spamCheck, setSpamCheck] = useState('');
+  const [startTime, setStartTime] = useState(null);
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -93,12 +100,30 @@ const RegisterPage = () => {
       newErrors.terms = 'You must agree to the terms and conditions';
     }
 
+    // Spam prevention checks
+    if (!spamCheck) {
+      newErrors.spamCheck = 'Please complete the spam check';
+    } else if (spamCheck !== 'car') {
+      newErrors.spamCheck = 'Incorrect answer';
+    }
+
+    // Check if form was filled too quickly (less than 10 seconds)
+    if (startTime && Date.now() - startTime < 10000) {
+      newErrors.general = 'Please take your time filling out the form';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Set start time when user first starts typing
+    if (!startTime) {
+      setStartTime(Date.now());
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -318,6 +343,24 @@ const RegisterPage = () => {
               </div>
               {errors.confirmPassword && (
                 <span className="error-message">{errors.confirmPassword}</span>
+              )}
+            </div>
+
+            {/* Spam Check */}
+            <div className="form-group">
+              <label htmlFor="spamCheck">Spam Check: What do you drive? *</label>
+              <input
+                type="text"
+                id="spamCheck"
+                name="spamCheck"
+                value={spamCheck}
+                onChange={(e) => setSpamCheck(e.target.value)}
+                className={errors.spamCheck ? 'error' : ''}
+                placeholder="Answer: car"
+                disabled={isSubmitting}
+              />
+              {errors.spamCheck && (
+                <span className="error-message">{errors.spamCheck}</span>
               )}
             </div>
 

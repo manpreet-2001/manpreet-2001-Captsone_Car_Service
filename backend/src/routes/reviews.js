@@ -11,9 +11,17 @@ router.get('/', async (req, res) => {
     const { page = 1, limit = 10, mechanic, service } = req.query;
     const skip = (page - 1) * limit;
     
-    let query = { isPublic: true, isVerified: true };
+    let query = { isPublic: true };
     
-    if (mechanic) query.mechanic = mechanic;
+    // For mechanics viewing their own reviews, don't require verification
+    // For public viewing, require verification
+    if (mechanic) {
+      query.mechanic = mechanic;
+      // Don't add isVerified filter for mechanic's own reviews
+    } else {
+      query.isVerified = true;
+    }
+    
     if (service) query.service = service;
 
     const reviews = await Review.find(query)

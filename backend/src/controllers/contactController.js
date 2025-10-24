@@ -18,7 +18,7 @@ const sendContactMessage = async (req, res) => {
     const { name, email, subject, message, phone } = req.body;
 
     // Create transporter (you can configure with your email service)
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: process.env.SMTP_PORT || 587,
       secure: false,
@@ -59,8 +59,8 @@ const sendContactMessage = async (req, res) => {
       `
     };
 
-    // Send email
-    await transporter.sendMail(mailOptions);
+    // Send email (commented out for demo - requires email configuration)
+    // await transporter.sendMail(mailOptions);
 
     // Log the contact submission (in production, you might want to store in database)
     console.log(`Contact form submission from ${name} (${email}): ${subject}`);

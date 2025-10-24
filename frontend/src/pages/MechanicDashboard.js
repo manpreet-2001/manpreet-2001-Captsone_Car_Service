@@ -16,6 +16,8 @@ const MechanicDashboard = () => {
   const [editingService, setEditingService] = useState(null);
   const [respondingToReview, setRespondingToReview] = useState(null);
   const [reviewResponse, setReviewResponse] = useState('');
+  const [showBookingDetails, setShowBookingDetails] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
   const [serviceForm, setServiceForm] = useState({
     serviceName: '',
     description: '',
@@ -27,14 +29,8 @@ const MechanicDashboard = () => {
   });
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchDashboardData();
-    
-    // Auto-refresh data every 30 seconds
-    const interval = setInterval(() => {
-      fetchDashboardData();
-    }, 30000);
-    
-    return () => clearInterval(interval);
   }, []);
 
   const fetchDashboardData = async () => {
@@ -94,13 +90,21 @@ const MechanicDashboard = () => {
     return new Date(aptDate).toDateString() === new Date().toDateString();
   }) : [];
 
-  const pendingAppointments = Array.isArray(appointments) ? appointments.filter(apt => 
-    apt && (apt.status === 'pending' || apt.status === 'rescheduled')
-  ) : [];
+  const pendingAppointments = Array.isArray(appointments) ? appointments
+    .filter(apt => apt && (apt.status === 'pending' || apt.status === 'rescheduled'))
+    .sort((a, b) => {
+      const dateA = new Date(a.bookingDate || a.createdAt);
+      const dateB = new Date(b.bookingDate || b.createdAt);
+      return dateB - dateA; // Latest first
+    }) : [];
   
-  const confirmedAppointments = Array.isArray(appointments) ? appointments.filter(apt => 
-    apt && apt.status === 'confirmed'
-  ) : [];
+  const confirmedAppointments = Array.isArray(appointments) ? appointments
+    .filter(apt => apt && apt.status === 'confirmed')
+    .sort((a, b) => {
+      const dateA = new Date(a.bookingDate || a.createdAt);
+      const dateB = new Date(b.bookingDate || b.createdAt);
+      return dateB - dateA; // Latest first
+    }) : [];
 
   const stats = {
     totalAppointments: Array.isArray(appointments) ? appointments.length : 0,
@@ -114,13 +118,42 @@ const MechanicDashboard = () => {
 
   const updateAppointmentStatus = async (appointmentId, status) => {
     try {
-      await axios.put(`/api/bookings/${appointmentId}/status`, { status });
-      fetchDashboardData(); // Refresh data
-      alert('Appointment status updated successfully!');
+      let updateData = { status };
+      
+      // If declining, ask for reason
+      if (status === 'cancelled') {
+        const reason = prompt('Please provide a reason for declining this service:');
+        if (!reason || reason.trim() === '') {
+          alert('Please provide a reason for declining the service.');
+          return;
+        }
+        updateData.cancellationReason = reason.trim();
+      }
+      
+      await axios.put(`/api/bookings/${appointmentId}/status`, updateData);
+      
+      // Show appropriate success message
+      if (status === 'confirmed') {
+        alert('✅ Service confirmed! The customer has been notified.');
+      } else if (status === 'cancelled') {
+        alert('❌ Service declined. The customer has been notified with your reason.');
+      } else if (status === 'completed') {
+        alert('🎉 Service marked as completed! The customer has been notified.');
+      }
+      
+      // Update appointment status in local state without full refresh
+      setAppointments(appointments.map(apt => 
+        apt._id === appointmentId ? { ...apt, status } : apt
+      ));
     } catch (error) {
       console.error('Failed to update appointment status:', error);
       alert('Failed to update status: ' + (error.response?.data?.message || error.message));
     }
+  };
+
+  const handleBookingDetails = (booking) => {
+    setSelectedBooking(booking);
+    setShowBookingDetails(true);
   };
 
   const handleAddService = () => {
@@ -239,9 +272,6 @@ const MechanicDashboard = () => {
             <p>Welcome back, {user?.name}. Manage your appointments and services.</p>
           </div>
           <div className="header-actions">
-            <button className="btn-secondary" onClick={fetchDashboardData} style={{marginRight: '12px'}}>
-              🔄 Refresh
-            </button>
             <button className="btn-primary" onClick={() => setActiveTab('services')}>
               Manage Services
             </button>
@@ -318,23 +348,39 @@ const MechanicDashboard = () => {
 
             <div className="overview-grid">
               <div className="overview-card">
-                <h3>📋 Pending Requests (Need Your Action)</h3>
+                <h3>📋 Pending Requests (Need Your Action) - {pendingAppointments.length} Total</h3>
                 <div className="pending-list">
                   {pendingAppointments.length > 0 ? (
-                    pendingAppointments.map(appointment => (
-                      <div key={appointment._id} className="pending-item">
+                    pendingAppointments.map((appointment, index) => (
+                      <div key={appointment._id} className="pending-item" onClick={() => handleBookingDetails(appointment)}>
+                        <div className="request-number">
+                          <span className="number-badge">#{index + 1}</span>
+                          <span className="priority-badge">HIGH PRIORITY</span>
+                        </div>
                         <div className="pending-date">
                           <div className="date-main">{appointment.bookingDate ? new Date(appointment.bookingDate).toLocaleDateString() : 'TBD'}</div>
                           <div className="date-time">{appointment.bookingTime || appointment.time || 'TBD'}</div>
                         </div>
                         <div className="pending-details">
-                          <strong>
-                            {appointment.service?.serviceName}
-                            {appointment.status === 'rescheduled' && <span className="rescheduled-badge">🔄 Rescheduled</span>}
-                          </strong>
-                          <span>👤 {appointment.owner?.name}</span>
-                          <span>🚗 {appointment.vehicle?.make} {appointment.vehicle?.model}</span>
-                          <span>💰 ${appointment.estimatedCost || appointment.service?.baseCost || 'N/A'}</span>
+                          <div className="service-info">
+                            <strong className="service-name">
+                              {appointment.service?.serviceName}
+                              {appointment.status === 'rescheduled' && <span className="rescheduled-badge">🔄 Rescheduled</span>}
+                            </strong>
+                            <div className="customer-info">
+                              <span className="customer-name">👤 {appointment.owner?.name}</span>
+                              <span className="vehicle-info">🚗 {appointment.vehicle?.make} {appointment.vehicle?.model} ({appointment.vehicle?.year})</span>
+                            </div>
+                            <div className="cost-info">
+                              <span className="cost">💰 ${appointment.estimatedCost || appointment.service?.baseCost || 'N/A'}</span>
+                              <span className="duration">⏱️ {appointment.service?.estimatedDuration || appointment.service?.duration || 'N/A'} min</span>
+                            </div>
+                          </div>
+                          {appointment.notes && (
+                            <div className="appointment-notes">
+                              <strong>Notes:</strong> {appointment.notes}
+                            </div>
+                          )}
                         </div>
                         <div className="pending-actions">
                           <button 
@@ -361,19 +407,36 @@ const MechanicDashboard = () => {
               </div>
 
               <div className="overview-card">
-                <h3>✅ Confirmed Appointments (Next 3)</h3>
+                <h3>✅ Confirmed Appointments - {confirmedAppointments.length} Total</h3>
                 <div className="appointments-list">
                   {confirmedAppointments.length > 0 ? (
-                    confirmedAppointments.slice(0, 3).map(appointment => (
-                      <div key={appointment._id} className="appointment-item">
+                    confirmedAppointments.map((appointment, index) => (
+                      <div key={appointment._id} className="appointment-item" onClick={() => handleBookingDetails(appointment)}>
+                        <div className="appointment-number">
+                          <span className="number-badge">#{index + 1}</span>
+                          <span className="status-badge confirmed">CONFIRMED</span>
+                        </div>
                         <div className="appointment-time">
                           <div className="time-main">{appointment.bookingTime || appointment.time || 'N/A'}</div>
                           <div className="time-date">{appointment.bookingDate ? new Date(appointment.bookingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}</div>
                         </div>
                         <div className="appointment-details">
-                          <strong>{appointment.service?.serviceName}</strong>
-                          <span>👤 {appointment.owner?.name}</span>
-                          <span>🚗 {appointment.vehicle?.make} {appointment.vehicle?.model}</span>
+                          <div className="service-info">
+                            <strong className="service-name">{appointment.service?.serviceName}</strong>
+                            <div className="customer-info">
+                              <span className="customer-name">👤 {appointment.owner?.name}</span>
+                              <span className="vehicle-info">🚗 {appointment.vehicle?.make} {appointment.vehicle?.model} ({appointment.vehicle?.year})</span>
+                            </div>
+                            <div className="cost-info">
+                              <span className="cost">💰 ${appointment.estimatedCost || appointment.service?.baseCost || 'N/A'}</span>
+                              <span className="duration">⏱️ {appointment.service?.estimatedDuration || appointment.service?.duration || 'N/A'} min</span>
+                            </div>
+                          </div>
+                          {appointment.notes && (
+                            <div className="appointment-notes">
+                              <strong>Notes:</strong> {appointment.notes}
+                            </div>
+                          )}
                         </div>
                         <div className="appointment-actions">
                           <button 
@@ -409,37 +472,49 @@ const MechanicDashboard = () => {
             </div>
             <div className="appointments-grid">
               {Array.isArray(appointments) && appointments.length > 0 ? (
-                appointments.map(appointment => (
-                  <div key={appointment._id} className="appointment-card">
+                appointments
+                  .sort((a, b) => {
+                    const dateA = new Date(a.bookingDate || a.createdAt);
+                    const dateB = new Date(b.bookingDate || b.createdAt);
+                    return dateB - dateA; // Latest first
+                  })
+                  .map((appointment, index) => (
+                  <div key={appointment._id} className="appointment-card" onClick={() => handleBookingDetails(appointment)}>
                     <div className="appointment-header">
-                      <div className="appointment-info">
-                        <h3>{appointment.service?.serviceName}</h3>
-                        <p>{appointment.owner?.name}</p>
-                        <p>{appointment.vehicle?.make} {appointment.vehicle?.model}</p>
+                      <div className="appointment-number">
+                        <span className="number-badge">#{index + 1}</span>
+                        <span className="date-badge">
+                          {appointment.bookingDate ? new Date(appointment.bookingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD'}
+                        </span>
                       </div>
                       <div className="appointment-status">
                         <span className={`status-badge ${appointment.status}`}>
-                          {appointment.status}
+                          {appointment.status.toUpperCase()}
                         </span>
                       </div>
                     </div>
-                    <div className="appointment-details">
-                      <div className="detail-row">
-                        <span className="label">Date:</span>
-                        <span className="value">{appointment.bookingDate ? new Date(appointment.bookingDate).toLocaleDateString() : 'N/A'}</span>
+                    <div className="appointment-info">
+                      <div className="service-section">
+                        <h3 className="service-name">{appointment.service?.serviceName}</h3>
+                        <div className="service-meta">
+                          <span className="cost">💰 ${appointment.estimatedCost || appointment.service?.baseCost || appointment.service?.cost || 'N/A'}</span>
+                          <span className="duration">⏱️ {appointment.service?.estimatedDuration || appointment.service?.duration || 'N/A'} min</span>
+                        </div>
                       </div>
-                      <div className="detail-row">
-                        <span className="label">Time:</span>
-                        <span className="value">{appointment.bookingTime || appointment.time || 'N/A'}</span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="label">Cost:</span>
-                        <span className="value">${appointment.estimatedCost || appointment.service?.baseCost || appointment.service?.cost || 'N/A'}</span>
+                      <div className="customer-section">
+                        <div className="customer-info">
+                          <span className="customer-name">👤 {appointment.owner?.name}</span>
+                          <span className="vehicle-info">🚗 {appointment.vehicle?.make} {appointment.vehicle?.model} ({appointment.vehicle?.year})</span>
+                        </div>
+                        <div className="appointment-timing">
+                          <span className="appointment-date">📅 {appointment.bookingDate ? new Date(appointment.bookingDate).toLocaleDateString() : 'N/A'}</span>
+                          <span className="appointment-time">🕐 {appointment.bookingTime || appointment.time || 'N/A'}</span>
+                        </div>
                       </div>
                       {appointment.notes && (
-                        <div className="detail-row">
-                          <span className="label">Notes:</span>
-                          <span className="value">{appointment.notes}</span>
+                        <div className="appointment-notes">
+                          <strong>Customer Notes:</strong>
+                          <p>{appointment.notes}</p>
                         </div>
                       )}
                     </div>
@@ -450,13 +525,13 @@ const MechanicDashboard = () => {
                             className="btn-success"
                             onClick={() => updateAppointmentStatus(appointment._id, 'confirmed')}
                           >
-                            Confirm
+                            ✓ Confirm
                           </button>
                           <button 
                             className="btn-danger"
                             onClick={() => updateAppointmentStatus(appointment._id, 'cancelled')}
                           >
-                            Cancel
+                            ✗ Cancel
                           </button>
                         </>
                       )}
@@ -465,8 +540,14 @@ const MechanicDashboard = () => {
                           className="btn-primary"
                           onClick={() => updateAppointmentStatus(appointment._id, 'completed')}
                         >
-                          Mark Complete
+                          ✓ Mark Complete
                         </button>
+                      )}
+                      {appointment.status === 'completed' && (
+                        <span className="completed-badge">✅ Completed</span>
+                      )}
+                      {appointment.status === 'cancelled' && (
+                        <span className="cancelled-badge">❌ Cancelled</span>
                       )}
                     </div>
                   </div>
@@ -802,6 +883,145 @@ const MechanicDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Details Modal */}
+      {showBookingDetails && selectedBooking && (
+        <div className="modal-overlay" onClick={() => setShowBookingDetails(false)}>
+          <div className="modal-content booking-details-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>📋 Booking Details</h3>
+              <button className="close-btn" onClick={() => setShowBookingDetails(false)}>×</button>
+            </div>
+            <div className="booking-details-content">
+              <div className="detail-section">
+                <h4>👤 Customer Information</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Name:</span>
+                    <span className="detail-value">{selectedBooking.owner?.name || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Email:</span>
+                    <span className="detail-value">{selectedBooking.owner?.email || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Phone:</span>
+                    <span className="detail-value">{selectedBooking.owner?.phone || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h4>🚗 Vehicle Information</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Make:</span>
+                    <span className="detail-value">{selectedBooking.vehicle?.make || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Model:</span>
+                    <span className="detail-value">{selectedBooking.vehicle?.model || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Year:</span>
+                    <span className="detail-value">{selectedBooking.vehicle?.year || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">License Plate:</span>
+                    <span className="detail-value">{selectedBooking.vehicle?.licensePlate || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">VIN:</span>
+                    <span className="detail-value">{selectedBooking.vehicle?.vin || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h4>🔧 Service Information</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Service:</span>
+                    <span className="detail-value">{selectedBooking.service?.serviceName || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Description:</span>
+                    <span className="detail-value">{selectedBooking.service?.description || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Category:</span>
+                    <span className="detail-value">{selectedBooking.service?.category || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Estimated Cost:</span>
+                    <span className="detail-value">${selectedBooking.estimatedCost || selectedBooking.service?.baseCost || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Duration:</span>
+                    <span className="detail-value">{selectedBooking.service?.estimatedDuration || selectedBooking.service?.duration || 'N/A'} minutes</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h4>📅 Appointment Details</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Date:</span>
+                    <span className="detail-value">
+                      {selectedBooking.bookingDate ? new Date(selectedBooking.bookingDate).toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      }) : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Time:</span>
+                    <span className="detail-value">{selectedBooking.bookingTime || selectedBooking.time || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Status:</span>
+                    <span className={`status-badge ${selectedBooking.status}`}>
+                      {selectedBooking.status?.toUpperCase() || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Created:</span>
+                    <span className="detail-value">
+                      {selectedBooking.createdAt ? new Date(selectedBooking.createdAt).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedBooking.notes && (
+                <div className="detail-section">
+                  <h4>📝 Additional Notes</h4>
+                  <div className="notes-content">
+                    <p>{selectedBooking.notes}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedBooking.cancellationReason && (
+                <div className="detail-section">
+                  <h4>❌ Cancellation Reason</h4>
+                  <div className="notes-content">
+                    <p>{selectedBooking.cancellationReason}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setShowBookingDetails(false)}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

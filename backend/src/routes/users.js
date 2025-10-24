@@ -5,10 +5,61 @@ const { validateObjectId, validatePagination } = require('../middleware/validati
 
 const router = express.Router();
 
-// All routes are protected
+// Public routes (before protect middleware)
+router.get('/mechanics', async (req, res) => {
+  try {
+    const mechanics = await User.find({ role: 'mechanic', status: 'active' })
+      .select('-password')
+      .sort({ 'rating.average': -1 });
+
+    res.json({ success: true, data: mechanics });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch mechanics', error: error.message });
+  }
+});
+
+// All other routes are protected
 router.use(protect);
 
 // Admin routes
+// Create new user (admin only)
+router.post('/', authorize('admin'), async (req, res) => {
+  try {
+    const { name, email, password, role, phone, address } = req.body;
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User already exists with this email'
+      });
+    }
+    
+    // Create user
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role,
+      phone,
+      address
+    });
+    
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: user.getPublicProfile()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create user',
+      error: error.message
+    });
+  }
+});
+
 router.get('/', authorize('admin'), validatePagination, async (req, res) => {
   try {
     const { page = 1, limit = 10, role, status, search } = req.query;
@@ -43,18 +94,6 @@ router.get('/', authorize('admin'), validatePagination, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch users', error: error.message });
-  }
-});
-
-router.get('/mechanics', async (req, res) => {
-  try {
-    const mechanics = await User.find({ role: 'mechanic', status: 'active' })
-      .select('-password')
-      .sort({ 'rating.average': -1 });
-
-    res.json({ success: true, data: mechanics });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch mechanics', error: error.message });
   }
 });
 

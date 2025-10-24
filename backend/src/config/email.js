@@ -31,6 +31,12 @@ const createTransporter = () => {
 // Verify email configuration
 const verifyEmailConfig = async () => {
   try {
+    // Check if email credentials are provided
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      console.log('⚠️ Email credentials not provided - email notifications disabled');
+      return false;
+    }
+
     const transporter = createTransporter();
     await transporter.verify();
     console.log('✅ Email server is ready to send messages');

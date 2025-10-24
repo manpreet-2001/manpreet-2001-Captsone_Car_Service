@@ -134,9 +134,18 @@ const validateBooking = [
     .custom((value) => {
       const bookingDate = new Date(value);
       const now = new Date();
-      if (bookingDate < now) {
-        throw new Error('Booking date cannot be in the past');
+      
+      // Check if date is valid
+      if (isNaN(bookingDate.getTime())) {
+        throw new Error('Invalid date format');
       }
+      
+      // Allow booking for today but not in the past (with 1 hour buffer)
+      const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+      if (bookingDate < oneHourFromNow) {
+        throw new Error('Booking must be at least 1 hour in the future');
+      }
+      
       return true;
     }),
   body('bookingTime')

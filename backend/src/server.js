@@ -89,8 +89,17 @@ const connectDB = async () => {
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(async () => {
-  // Verify email configuration
-
+  // Verify email configuration (with error handling for production)
+  try {
+    const emailReady = await verifyEmailConfig();
+    if (emailReady) {
+      console.log('✅ Email notifications enabled');
+    } else {
+      console.log('⚠️ Email notifications disabled - check environment variables');
+    }
+  } catch (error) {
+    console.log('⚠️ Email service not available - continuing without email notifications');
+  }
   
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

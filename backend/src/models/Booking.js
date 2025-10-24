@@ -225,8 +225,11 @@ bookingSchema.pre('save', function(next) {
   const bookingDateTime = this.bookingDateTime;
   
   // Check if booking is in the past (allow for existing bookings)
-  if (bookingDateTime < now && this.isNew) {
-    return next(new Error('Cannot book appointments in the past'));
+  if (bookingDateTime && bookingDateTime < now && this.isNew) {
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+    if (bookingDateTime < oneHourFromNow) {
+      return next(new Error('Booking must be at least 1 hour in the future'));
+    }
   }
   
   next();

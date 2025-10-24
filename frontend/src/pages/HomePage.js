@@ -20,16 +20,70 @@ const HomePage = () => {
 
   const fetchStats = async () => {
     try {
-      // In a real app, you'd have an endpoint for stats
-      // For now, we'll simulate the data
+      // Fetch real data from API endpoints
+      const [servicesRes, mechanicsRes, bookingsRes, reviewsRes] = await Promise.allSettled([
+        axios.get('/api/services?limit=100'),
+        axios.get('/api/users/mechanics'),
+        axios.get('/api/bookings?limit=100'),
+        axios.get('/api/reviews?limit=100')
+      ]);
+      
+      let totalServices = 0;
+      let totalMechanics = 0;
+      let totalBookings = 0;
+      let satisfactionRate = 0;
+      
+      // Count services
+      if (servicesRes.status === 'fulfilled') {
+        const servicesData = servicesRes.value.data;
+        const servicesArray = Array.isArray(servicesData) ? servicesData : servicesData?.data || [];
+        totalServices = servicesArray.filter(service => service.isAvailable !== false).length;
+      }
+      
+      // Count mechanics
+      if (mechanicsRes.status === 'fulfilled') {
+        const mechanicsData = mechanicsRes.value.data;
+        const mechanicsArray = Array.isArray(mechanicsData) ? mechanicsData : mechanicsData?.data || [];
+        totalMechanics = mechanicsArray.filter(mechanic => mechanic.status !== 'suspended').length;
+      }
+      
+      // Count bookings
+      if (bookingsRes.status === 'fulfilled') {
+        const bookingsData = bookingsRes.value.data;
+        const bookingsArray = Array.isArray(bookingsData) ? bookingsData : bookingsData?.data || [];
+        totalBookings = bookingsArray.filter(booking => booking.status === 'completed').length;
+      }
+      
+      // Calculate satisfaction rate from reviews
+      if (reviewsRes.status === 'fulfilled') {
+        const reviewsData = reviewsRes.value.data;
+        const reviewsArray = Array.isArray(reviewsData) ? reviewsData : reviewsData?.data || [];
+        if (reviewsArray.length > 0) {
+          const avgRating = reviewsArray.reduce((sum, review) => sum + (review.rating || 0), 0) / reviewsArray.length;
+          satisfactionRate = Math.round((avgRating / 5) * 100);
+        } else {
+          satisfactionRate = 95; // Default high satisfaction if no reviews
+        }
+      } else {
+        satisfactionRate = 95; // Default if reviews fail
+      }
+      
+      console.log('HomePage Stats:', { totalServices, totalMechanics, totalBookings, satisfactionRate });
       setStats({
-        totalServices: 45,
-        totalMechanics: 28,
-        totalBookings: 1250,
-        satisfactionRate: 98
+        totalServices,
+        totalMechanics,
+        totalBookings,
+        satisfactionRate
       });
     } catch (error) {
       console.error('Failed to fetch stats:', error);
+      // Set fallback stats
+      setStats({
+        totalServices: 0,
+        totalMechanics: 0,
+        totalBookings: 0,
+        satisfactionRate: 95
+      });
     } finally {
       setLoading(false);
     }
@@ -214,13 +268,13 @@ const HomePage = () => {
             <p>Join thousands of satisfied customers and mechanics using our platform</p>
             <div className="cta-actions">
               {user ? (
-                <Link to="/booking" className="btn-primary large">
+                <Link to="/booking" className="btn btn-primary btn-xl">
                   Book Service Now
                 </Link>
               ) : (
                 <>
-                  <Link to="/register" className="btn-primary large">Sign Up Today</Link>
-                  <Link to="/login" className="btn-secondary large">Sign In</Link>
+                  <Link to="/register" className="btn btn-primary btn-xl">Sign Up Today</Link>
+                  <Link to="/login" className="btn btn-secondary btn-xl">Sign In</Link>
                 </>
               )}
             </div>

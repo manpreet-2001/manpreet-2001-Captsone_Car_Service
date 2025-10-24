@@ -31,22 +31,81 @@
 }
 
 .logo-icon {
-  background: #ff6b35;
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
   color: white;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
+  font-weight: 800;
   margin-right: 12px;
-  font-size: 18px;
+  font-size: 20px;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  animation: logoGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes logoGlow {
+  0% {
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  }
+  100% {
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.5), 0 0 20px rgba(255, 107, 53, 0.2);
+  }
+}
+
+.logo-icon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+  border-radius: 12px;
+}
+
+.logo-icon:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+}
+
+.logo-c {
+  position: relative;
+  z-index: 2;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.logo-s {
+  position: relative;
+  z-index: 2;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  margin-left: -2px;
 }
 
 .logo-text {
-  font-size: 22px;
+  font-size: 24px;
   letter-spacing: -0.5px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.navbar-logo:hover .logo-text {
+  background: linear-gradient(135deg, #ffffff 0%, #ff6b35 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .navbar-menu {

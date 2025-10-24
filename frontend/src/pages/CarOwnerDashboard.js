@@ -21,6 +21,7 @@ const CarOwnerDashboard = () => {
   const [historyFilter, setHistoryFilter] = useState('');
   const [rescheduleBookingId, setRescheduleBookingId] = useState(null); // Track booking being rescheduled
   const [reviewBooking, setReviewBooking] = useState(null); // Track booking being reviewed
+  const [selectedBooking, setSelectedBooking] = useState(null); // Track booking being viewed
   const [newBooking, setNewBooking] = useState({
     vehicle: '',
     service: '',
@@ -39,14 +40,8 @@ const CarOwnerDashboard = () => {
   });
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchDashboardData();
-    
-    // Auto-refresh data every 30 seconds
-    const interval = setInterval(() => {
-      fetchDashboardData();
-    }, 30000);
-    
-    return () => clearInterval(interval);
   }, []);
 
   const fetchDashboardData = async () => {
@@ -65,11 +60,15 @@ const CarOwnerDashboard = () => {
         const vehiclesData = vehiclesRes.value.data;
         console.log('Vehicles API response:', vehiclesData);
         const vehiclesArray = Array.isArray(vehiclesData) ? vehiclesData : vehiclesData?.data || [];
+        console.log('Vehicles array:', vehiclesArray);
+        console.log('First vehicle:', vehiclesArray[0]);
         setVehicles(vehiclesArray);
         console.log('Vehicles set:', vehiclesArray.length, 'vehicles');
       } else {
         console.warn('Failed to fetch vehicles:', vehiclesRes.reason);
         console.error('Vehicles error details:', vehiclesRes.reason?.response?.data);
+        console.error('Vehicles error status:', vehiclesRes.reason?.response?.status);
+        console.error('Vehicles error message:', vehiclesRes.reason?.message);
         // Set empty array if API fails (user might not have any vehicles yet)
         setVehicles([]);
       }
@@ -288,7 +287,13 @@ const CarOwnerDashboard = () => {
            booking.status !== 'cancelled';
   }) : [];
 
-  const recentBookings = Array.isArray(bookings) ? bookings.slice(0, 5) : [];
+  const recentBookings = Array.isArray(bookings) ? bookings
+    .sort((a, b) => {
+      const dateA = new Date(a.bookingDate || a.date || a.createdAt);
+      const dateB = new Date(b.bookingDate || b.date || b.createdAt);
+      return dateB - dateA; // Latest first
+    })
+    .slice(0, 5) : [];
 
   const stats = {
     totalVehicles: Array.isArray(vehicles) ? vehicles.length : 0,
@@ -312,8 +317,6 @@ const CarOwnerDashboard = () => {
         setNewVehicle({ make: '', model: '', year: '', licensePlate: '', color: '', vin: '' });
         setShowAddVehicle(false);
         alert('Vehicle added successfully!');
-        // Refresh the dashboard data
-        fetchDashboardData();
       }
     } catch (error) {
       console.error('Failed to add vehicle:', error);
@@ -376,8 +379,11 @@ const CarOwnerDashboard = () => {
       // Check if this is a reschedule or new booking
       if (rescheduleBookingId) {
         // This is a reschedule - update existing booking
+        // Convert date to ISO format for backend validation
+        const rescheduleDate = new Date(newBooking.date + 'T' + newBooking.time + ':00');
+        
         const rescheduleData = {
-          newDate: newBooking.date,
+          newDate: rescheduleDate.toISOString(),
           newTime: newBooking.time,
           reason: 'Rescheduled by customer'
         };
@@ -395,15 +401,17 @@ const CarOwnerDashboard = () => {
           setRescheduleBookingId(null); // Clear reschedule mode
           setActiveTab('bookings');
           alert('Appointment rescheduled successfully!');
-          fetchDashboardData(); // Refresh to get updated data
         }
       } else {
         // This is a new booking
+        // Convert date to ISO format for backend validation
+        const bookingDate = new Date(newBooking.date + 'T' + newBooking.time + ':00');
+        
         const bookingData = {
           vehicle: newBooking.vehicle,
           service: newBooking.service,
           mechanic: newBooking.mechanic,  // User-selected mechanic
-          bookingDate: newBooking.date,
+          bookingDate: bookingDate.toISOString(),
           bookingTime: newBooking.time,
           specialInstructions: newBooking.notes,
           serviceLocation: 'at_garage'
@@ -418,7 +426,6 @@ const CarOwnerDashboard = () => {
           setNewBooking({ vehicle: '', service: '', date: '', time: '', notes: '' });
           setActiveTab('bookings');
           alert('Service booked successfully!');
-          fetchDashboardData(); // Refresh to get updated data
         } else {
           alert('Failed to book service: ' + (response.data.message || 'Unknown error'));
         }
@@ -476,7 +483,11 @@ const CarOwnerDashboard = () => {
     if (historyFilter) {
       filtered = filtered.filter(b => b.vehicle._id === historyFilter);
     }
-    return filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.bookingDate || a.date || a.createdAt);
+      const dateB = new Date(b.bookingDate || b.date || b.createdAt);
+      return dateB - dateA; // Latest first
+    });
   };
 
   if (loading) {
@@ -492,13 +503,10 @@ const CarOwnerDashboard = () => {
           <p>Manage your vehicles and service appointments</p>
         </div>
         <div className="header-actions">
-          <button className="btn-secondary" onClick={fetchDashboardData} style={{marginRight: '12px'}}>
-            🔄 Refresh
-          </button>
-          <button className="btn-primary" onClick={() => setActiveTab('booking')}>
+          <button className="btn btn-primary btn-lg" onClick={() => setActiveTab('booking')}>
             Book Service
           </button>
-          </div>
+        </div>
         </div>
       </div>
 
@@ -621,7 +629,7 @@ const CarOwnerDashboard = () => {
                     <div className="no-data">
                       <p>No vehicles added</p>
                       <button 
-                        className="btn-primary"
+                        className="btn btn-primary btn-sm"
                         onClick={() => {
                           setShowAddVehicle(true);
                           setShowEditVehicle(null);
@@ -642,7 +650,7 @@ const CarOwnerDashboard = () => {
             <div className="tab-header">
               <h2>My Vehicles</h2>
               <button 
-                className="btn-primary" 
+                className="btn btn-primary btn-sm" 
                 onClick={() => {
                   setShowAddVehicle(true);
                   setShowEditVehicle(null);
@@ -743,7 +751,7 @@ const CarOwnerDashboard = () => {
                       }}>
                         Cancel
                       </button>
-                      <button type="submit" className="btn-primary">
+                      <button type="submit" className="btn btn-primary btn-lg">
                         {showEditVehicle ? 'Update Vehicle' : 'Add Vehicle'}
                       </button>
                     </div>
@@ -754,48 +762,55 @@ const CarOwnerDashboard = () => {
 
             <div className="vehicles-grid">
               {Array.isArray(vehicles) && vehicles.length > 0 ? (
-                vehicles.map(vehicle => (
-                  <div key={vehicle._id} className="vehicle-card">
-                    <div className="vehicle-header">
-                      <h3>{vehicle.make} {vehicle.model}</h3>
-                      <span className="vehicle-year">{vehicle.year}</span>
-                    </div>
-                    <div className="vehicle-details">
-                      <div className="detail-item">
-                        <span className="label">License Plate:</span>
-                        <span className="value">{vehicle.licensePlate}</span>
+                vehicles.map(vehicle => {
+                  console.log('Rendering vehicle:', vehicle);
+                  return (
+                    <div key={vehicle._id} className="vehicle-card">
+                      <div className="vehicle-header">
+                        <h3>{vehicle.make} {vehicle.model}</h3>
+                        <span className="vehicle-year">{vehicle.year}</span>
                       </div>
-                      <div className="detail-item">
-                        <span className="label">Color:</span>
-                        <span className="value">{vehicle.color || 'N/A'}</span>
+                      <div className="vehicle-details">
+                        <div className="detail-item">
+                          <span className="label">License Plate:</span>
+                          <span className="value">{vehicle.licensePlate || 'N/A'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="label">Color:</span>
+                          <span className="value">{vehicle.color || 'N/A'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="label">VIN:</span>
+                          <span className="value">{vehicle.vin || 'N/A'}</span>
+                        </div>
+                        <div className="detail-item">
+                          <span className="label">Added:</span>
+                          <span className="value">{vehicle.createdAt ? new Date(vehicle.createdAt).toLocaleDateString() : 'N/A'}</span>
+                        </div>
                       </div>
-                      <div className="detail-item">
-                        <span className="label">Added:</span>
-                        <span className="value">{new Date(vehicle.createdAt).toLocaleDateString()}</span>
+                      <div className="vehicle-actions">
+                        <button 
+                          className="btn-secondary"
+                          onClick={() => handleEditVehicle(vehicle._id)}
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          className="btn-danger"
+                          onClick={() => handleDeleteVehicle(vehicle._id)}
+                        >
+                          Remove
+                        </button>
                       </div>
                     </div>
-                    <div className="vehicle-actions">
-                      <button 
-                        className="btn-secondary"
-                        onClick={() => handleEditVehicle(vehicle._id)}
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        className="btn-danger"
-                        onClick={() => handleDeleteVehicle(vehicle._id)}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="empty-state">
                   <h3>No vehicles added yet</h3>
                   <p>Add your first vehicle to start booking services</p>
                   <button 
-                    className="btn-primary"
+                    className="btn btn-primary btn-lg"
                     onClick={() => {
                       setShowAddVehicle(true);
                       setShowEditVehicle(null);
@@ -846,86 +861,98 @@ const CarOwnerDashboard = () => {
                 </button>
               </div>
             </div>
-            <div className="bookings-list">
+            <div className="bookings-table-container">
               {getFilteredBookings().length > 0 ? (
-                getFilteredBookings().map(booking => (
-                  <div key={booking._id} className="booking-card">
-                    <div className="booking-header">
-                      <div className="booking-info">
-                        <h3>{booking.service?.serviceName}</h3>
-                        <p>{booking.vehicle?.make} {booking.vehicle?.model}</p>
-                      </div>
-                      <div className="booking-status">
-                        <span className={`status-badge ${booking.status}`}>
-                          {booking.status}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="booking-details">
-                      <div className="detail-row">
-                        <span className="label">Date:</span>
-                        <span className="value">{new Date(booking.bookingDate || booking.date).toLocaleDateString()}</span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="label">Time:</span>
-                        <span className="value">{booking.bookingTime || booking.time}</span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="label">Mechanic:</span>
-                        <span className="value">{booking.mechanic?.name || 'Pending Assignment'}</span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="label">Cost:</span>
-                        <span className="value">${booking.estimatedCost || booking.service?.baseCost || booking.service?.cost || 'N/A'}</span>
-                      </div>
-                      {booking.notes && (
-                        <div className="detail-row">
-                          <span className="label">Notes:</span>
-                          <span className="value">{booking.notes}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="booking-actions">
-                      {(booking.status === 'pending' || booking.status === 'confirmed') && (
-                        <>
-                          <button 
-                            className="btn-secondary"
-                            onClick={() => handleRescheduleBooking(booking._id)}
-                          >
-                            Reschedule
-                          </button>
-                          <button 
-                            className="btn-danger"
-                            onClick={() => handleCancelBooking(booking._id)}
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      )}
-                      {booking.status === 'completed' && (
-                        <button 
-                          className="btn-primary"
-                          onClick={() => setReviewBooking(booking)}
-                        >
-                          Leave Review
-                        </button>
-                      )}
-                      {booking.status === 'cancelled' && (
-                        <button 
-                          className="btn-primary"
-                          onClick={() => setActiveTab('booking')}
-                        >
-                          Book Again
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
+                <table className="bookings-table">
+                  <thead>
+                    <tr>
+                      <th>Service</th>
+                      <th>Vehicle</th>
+                      <th>Date & Time</th>
+                      <th>Mechanic</th>
+                      <th>Cost</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getFilteredBookings().map(booking => (
+                      <tr key={booking._id} className="booking-row">
+                        <td className="service-cell">
+                          <div className="service-info">
+                            <strong>{booking.service?.serviceName}</strong>
+                            {booking.notes && (
+                              <div className="booking-notes">
+                                <small>📝 {booking.notes}</small>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="vehicle-cell">
+                          {booking.vehicle?.make} {booking.vehicle?.model}
+                        </td>
+                        <td className="datetime-cell">
+                          <div className="datetime-info">
+                            <div className="date">{new Date(booking.bookingDate || booking.date).toLocaleDateString()}</div>
+                            <div className="time">{booking.bookingTime || booking.time}</div>
+                          </div>
+                        </td>
+                        <td className="mechanic-cell">
+                          {booking.mechanic?.name || 'Pending Assignment'}
+                        </td>
+                        <td className="cost-cell">
+                          ${booking.estimatedCost || booking.service?.baseCost || booking.service?.cost || 'N/A'}
+                        </td>
+                        <td className="status-cell">
+                          <span className={`status-badge ${booking.status}`}>
+                            {booking.status}
+                          </span>
+                        </td>
+                        <td className="actions-cell">
+                          <div className="booking-actions">
+                            {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                              <>
+                                <button 
+                                  className="btn-secondary btn-sm"
+                                  onClick={() => handleRescheduleBooking(booking._id)}
+                                >
+                                  Reschedule
+                                </button>
+                                <button 
+                                  className="btn-danger btn-sm"
+                                  onClick={() => handleCancelBooking(booking._id)}
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+                            {booking.status === 'completed' && (
+                              <button 
+                                className="btn-primary btn-sm"
+                                onClick={() => setReviewBooking(booking)}
+                              >
+                                Leave Review
+                              </button>
+                            )}
+                            {booking.status === 'cancelled' && (
+                              <button 
+                                className="btn-primary btn-sm"
+                                onClick={() => setActiveTab('booking')}
+                              >
+                                Book Again
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               ) : (
                 <div className="empty-state">
                   <h3>No bookings found</h3>
                   <p>{bookingFilter === 'all' ? 'Book your first service appointment' : `No ${bookingFilter} bookings`}</p>
-                  <button className="btn-primary" onClick={() => setActiveTab('booking')}>
+                  <button className="btn btn-primary btn-lg" onClick={() => setActiveTab('booking')}>
                     Book Service
                   </button>
                 </div>
@@ -1092,7 +1119,7 @@ const CarOwnerDashboard = () => {
                   </button>
                   <button 
                     type="submit" 
-                    className="btn-primary"
+                    className="btn btn-primary btn-lg"
                     disabled={vehicles.length === 0 || mechanics.length === 0}
                   >
                     {rescheduleBookingId ? 'Reschedule Appointment' : 'Book Service'}
@@ -1153,9 +1180,14 @@ const CarOwnerDashboard = () => {
                       <span className="cost-label">Total</span>
                       </div>
                       <div className="history-actions">
-                        <button className="btn-secondary">View Details</button>
                         <button 
-                          className="btn-primary"
+                          className="btn-secondary"
+                          onClick={() => setSelectedBooking(booking)}
+                        >
+                          View Details
+                        </button>
+                        <button 
+                          className="btn btn-primary btn-sm"
                           onClick={() => setReviewBooking(booking)}
                         >
                           Leave Review
@@ -1191,11 +1223,144 @@ const CarOwnerDashboard = () => {
       {reviewBooking && (
         <ReviewModal
           booking={reviewBooking}
-          onClose={() => setReviewBooking(null)}
-          onSuccess={() => {
-            fetchDashboardData();
+          onClose={() => {
+            setReviewBooking(null);
+            // Don't refresh data immediately to prevent modal from closing
+          }}
+          onSuccess={(reviewData) => {
+            // Update the booking to show it has been reviewed
+            setBookings(bookings.map(b =>
+              b._id === reviewBooking._id ? { ...b, hasReview: true } : b
+            ));
+            setReviewBooking(null);
+            // Show success message
+            alert('Review submitted successfully!');
           }}
         />
+      )}
+
+      {/* Booking Details Modal */}
+      {selectedBooking && (
+        <div className="modal-overlay" onClick={() => setSelectedBooking(null)}>
+          <div className="modal-content booking-details-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>📋 Booking Details</h3>
+              <button className="close-btn" onClick={() => setSelectedBooking(null)}>×</button>
+            </div>
+            <div className="booking-details-content">
+              <div className="detail-section">
+                <h4>Service Information</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Service:</span>
+                    <span className="detail-value">{selectedBooking.service?.serviceName || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Category:</span>
+                    <span className="detail-value">{selectedBooking.service?.category || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Duration:</span>
+                    <span className="detail-value">{selectedBooking.service?.estimatedDuration || selectedBooking.estimatedDuration || 'N/A'} minutes</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Description:</span>
+                    <span className="detail-value">{selectedBooking.service?.description || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h4>Vehicle Information</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Make & Model:</span>
+                    <span className="detail-value">{selectedBooking.vehicle?.make} {selectedBooking.vehicle?.model}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Year:</span>
+                    <span className="detail-value">{selectedBooking.vehicle?.year || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">License Plate:</span>
+                    <span className="detail-value">{selectedBooking.vehicle?.licensePlate || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Color:</span>
+                    <span className="detail-value">{selectedBooking.vehicle?.color || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h4>Appointment Details</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Date:</span>
+                    <span className="detail-value">
+                      {selectedBooking.bookingDate ? new Date(selectedBooking.bookingDate).toLocaleDateString() : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Time:</span>
+                    <span className="detail-value">{selectedBooking.bookingTime || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Status:</span>
+                    <span className={`status-badge ${selectedBooking.status}`}>
+                      {selectedBooking.status}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Mechanic:</span>
+                    <span className="detail-value">{selectedBooking.mechanic?.name || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h4>Cost Information</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Base Cost:</span>
+                    <span className="detail-value">${selectedBooking.service?.baseCost || selectedBooking.estimatedCost || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Actual Cost:</span>
+                    <span className="detail-value">${selectedBooking.actualCost || selectedBooking.estimatedCost || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Service Location:</span>
+                    <span className="detail-value">{selectedBooking.serviceLocation || 'At Garage'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedBooking.specialInstructions && (
+                <div className="detail-section">
+                  <h4>Special Instructions</h4>
+                  <div className="instructions-content">
+                    <p>{selectedBooking.specialInstructions}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedBooking.notes && (
+                <div className="detail-section">
+                  <h4>Additional Notes</h4>
+                  <div className="notes-content">
+                    <p>{selectedBooking.notes}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setSelectedBooking(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

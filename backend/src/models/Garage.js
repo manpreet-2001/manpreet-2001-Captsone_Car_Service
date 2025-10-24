@@ -153,3 +153,5 @@ garageSchema.set('toJSON', { virtuals: true });
 
 module.exports = mongoose.model('Garage', garageSchema);
 
+
+

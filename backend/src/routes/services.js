@@ -46,6 +46,17 @@ router.get('/', validatePagination, async (req, res) => {
 // Protected routes
 router.use(protect);
 
+// Admin routes for services
+router.post('/admin', authorize('admin'), validateService, async (req, res) => {
+  try {
+    const service = await Service.create(req.body);
+    await service.populate('mechanic', 'name email');
+    res.status(201).json({ success: true, message: 'Service created successfully', data: service });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to create service', error: error.message });
+  }
+});
+
 // Mechanic routes
 router.post('/', authorize('mechanic'), validateService, async (req, res) => {
   try {

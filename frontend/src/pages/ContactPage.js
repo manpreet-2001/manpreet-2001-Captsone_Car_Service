@@ -14,8 +14,11 @@ const ContactPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
   const [contactInfo, setContactInfo] = useState(null);
+  const [spamCheck, setSpamCheck] = useState('');
+  const [startTime, setStartTime] = useState(null);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchContactInfo();
   }, []);
 
@@ -76,12 +79,42 @@ const ContactPage = () => {
       newErrors.message = 'Message must be at least 10 characters';
     }
 
+    // Spam prevention checks
+    if (!spamCheck) {
+      newErrors.spamCheck = 'Please complete the spam check';
+    } else if (spamCheck !== 'car') {
+      newErrors.spamCheck = 'Incorrect answer';
+    }
+
+    // Check if form was filled too quickly (less than 5 seconds)
+    if (startTime && Date.now() - startTime < 5000) {
+      newErrors.general = 'Please take your time filling out the form';
+    }
+
+    // Check for suspicious patterns
+    const suspiciousPatterns = [
+      /(http|www|\.com|\.net|\.org)/i,
+      /(viagra|casino|loan|credit)/i,
+      /(click here|buy now|free money)/i
+    ];
+    
+    const messageText = formData.message.toLowerCase();
+    if (suspiciousPatterns.some(pattern => pattern.test(messageText))) {
+      newErrors.message = 'Message contains suspicious content';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Set start time when user first starts typing
+    if (!startTime) {
+      setStartTime(Date.now());
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -105,17 +138,24 @@ const ContactPage = () => {
     setSubmitStatus(null);
     
     try {
-      await axios.post('/contact', formData);
-      setSubmitStatus('success');
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
-      });
+      const response = await axios.post('/api/contact', formData);
+      console.log('Contact form response:', response.data);
+      
+      if (response.data.success) {
+        setSubmitStatus('success');
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: ''
+        });
+      } else {
+        setSubmitStatus('error');
+      }
     } catch (error) {
       console.error('Contact form error:', error);
+      console.error('Error response:', error.response?.data);
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
@@ -236,9 +276,24 @@ const ContactPage = () => {
                   {errors.message && <span className="error-text">{errors.message}</span>}
                 </div>
 
+                <div className="form-group">
+                  <label htmlFor="spamCheck">Spam Check: What do you drive? *</label>
+                  <input
+                    type="text"
+                    id="spamCheck"
+                    name="spamCheck"
+                    value={spamCheck}
+                    onChange={(e) => setSpamCheck(e.target.value)}
+                    className={errors.spamCheck ? 'error' : ''}
+                    placeholder="Answer: car"
+                    disabled={isSubmitting}
+                  />
+                  {errors.spamCheck && <span className="error-text">{errors.spamCheck}</span>}
+                </div>
+
                 <button
                   type="submit"
-                  className="submit-btn"
+                  className="btn btn-primary btn-lg"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Sending...' : 'Send Message'}
@@ -341,5 +396,7 @@ const ContactPage = () => {
 };
 
 export default ContactPage;
+
+
 
 

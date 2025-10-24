@@ -366,22 +366,35 @@
 
 .vehicle-details {
   margin-bottom: 20px;
+  background: #f1f5f9;
+  padding: 16px;
+  border-radius: 8px;
+  border: 2px solid #cbd5e1;
+  min-height: 120px;
 }
 
 .detail-item {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .detail-item .label {
   color: #64748b;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .detail-item .value {
   color: #374151;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 14px;
 }
 
@@ -391,6 +404,118 @@
 }
 
 /* Bookings Tab */
+.bookings-table-container {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+.bookings-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.bookings-table thead {
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.bookings-table th {
+  padding: 16px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bookings-table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+
+.booking-row:hover {
+  background: #f8fafc;
+}
+
+.service-cell {
+  min-width: 200px;
+}
+
+.service-info strong {
+  color: #1e293b;
+  font-size: 16px;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.booking-notes {
+  margin-top: 4px;
+}
+
+.booking-notes small {
+  color: #64748b;
+  font-style: italic;
+}
+
+.vehicle-cell {
+  min-width: 150px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.datetime-cell {
+  min-width: 140px;
+}
+
+.datetime-info .date {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.datetime-info .time {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.mechanic-cell {
+  min-width: 120px;
+  color: #374151;
+}
+
+.cost-cell {
+  min-width: 100px;
+  font-weight: 600;
+  color: #059669;
+}
+
+.status-cell {
+  min-width: 100px;
+}
+
+.actions-cell {
+  min-width: 200px;
+}
+
+.booking-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.booking-actions .btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
 .filter-tabs {
   display: flex;
   gap: 8px;
@@ -1238,5 +1363,105 @@
   .modal-content .btn-secondary {
     width: 100%;
     min-width: auto;
+  }
+}
+
+/* Booking Details Modal */
+.booking-details-modal {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.booking-details-content {
+  padding: 1.5rem;
+}
+
+.detail-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.detail-section h4 {
+  color: #1e3c72;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.detail-value {
+  color: #1e293b;
+  font-size: 0.9rem;
+  text-align: right;
+  max-width: 60%;
+  word-wrap: break-word;
+}
+
+.instructions-content,
+.notes-content {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid #1e3c72;
+}
+
+.instructions-content p,
+.notes-content p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+/* Mobile Booking Details */
+@media (max-width: 768px) {
+  .booking-details-modal {
+    max-width: 95%;
+    margin: 1rem;
+  }
+
+  .detail-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .detail-value {
+    text-align: left;
+    max-width: 100%;
   }
 }

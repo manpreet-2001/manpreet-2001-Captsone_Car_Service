@@ -13,6 +13,7 @@ const ServicesPage = () => {
   const [viewMode, setViewMode] = useState('services'); // 'services' or 'mechanics'
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     fetchServices();
     fetchMechanics();
   }, []);
@@ -23,10 +24,13 @@ const ServicesPage = () => {
       // Fetch with higher limit to get all services
       const response = await axios.get('/api/services?limit=100');
       const servicesData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+      console.log('Services fetched:', servicesData.length, servicesData);
       setServices(servicesData);
     } catch (error) {
       console.error('Failed to fetch services:', error);
-      // Set mock data if API fails
+      // Set empty array if API fails - let users see no services rather than fake data
+      setServices([]);
+      /* Removed mock data - let the system show real data or empty state
       setServices([
         {
           _id: '1',
@@ -95,6 +99,7 @@ const ServicesPage = () => {
           isAvailable: true
         }
       ]);
+      */
     } finally {
       setLoading(false);
     }
@@ -104,6 +109,7 @@ const ServicesPage = () => {
     try {
       const response = await axios.get('/api/users/mechanics');
       const mechanicsData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+      console.log('Mechanics fetched:', mechanicsData.length, mechanicsData);
       setMechanics(mechanicsData);
     } catch (error) {
       console.error('Failed to fetch mechanics:', error);
@@ -298,7 +304,7 @@ const ServicesPage = () => {
                         <span className="price">${service.baseCost}</span>
                         <span className="price-label">starting from</span>
                       </div>
-                      <button className="book-service-btn">
+                      <button className="btn btn-primary btn-sm">
                         Book Service
                       </button>
                     </div>
@@ -376,7 +382,7 @@ const ServicesPage = () => {
                     
                     <div className="mechanic-footer">
                       <button 
-                        className="btn-secondary"
+                        className="btn btn-secondary btn-sm"
                         onClick={() => {
                           setSelectedMechanic(mechanic._id);
                           setViewMode('services');

@@ -41,7 +41,10 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         <Link to="/" className="navbar-logo">
-          <span className="logo-icon">CS</span>
+          <div className="logo-icon">
+            <span className="logo-c">C</span>
+            <span className="logo-s">S</span>
+          </div>
           <span className="logo-text">CarService</span>
         </Link>
 

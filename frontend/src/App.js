@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -14,6 +15,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import ContactPage from './pages/ContactPage';
 import CarOwnerDashboard from './pages/CarOwnerDashboard';
 import MechanicDashboard from './pages/MechanicDashboard';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 
 import './App.css';
 
@@ -32,6 +35,8 @@ function App() {
               <Route path="/services" element={<ServicesPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
               
               {/* Protected Routes */}
               <Route path="/dashboard" element={
@@ -54,6 +59,7 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
+          <Footer />
         </div>
       </Router>
     </AuthProvider>

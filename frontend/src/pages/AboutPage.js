@@ -1,7 +1,74 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './AboutPage.css';
 
 const AboutPage = () => {
+  const [stats, setStats] = useState({
+    happyCustomers: '10,000+',
+    servicesCompleted: '50,000+',
+    customerSatisfaction: '98%',
+    customerSupport: '24/7'
+  });
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const [usersRes, bookingsRes, reviewsRes] = await Promise.allSettled([
+        axios.get('/api/users'),
+        axios.get('/api/bookings?limit=100'),
+        axios.get('/api/reviews?limit=100')
+      ]);
+      
+      let happyCustomers = '10,000+';
+      let servicesCompleted = '50,000+';
+      let customerSatisfaction = '98%';
+      
+      // Count users
+      if (usersRes.status === 'fulfilled') {
+        const usersData = usersRes.value.data;
+        const usersArray = Array.isArray(usersData) ? usersData : usersData?.data || [];
+        const totalUsers = usersArray.length;
+        if (totalUsers > 0) {
+          happyCustomers = totalUsers > 1000 ? `${Math.floor(totalUsers / 1000)}K+` : `${totalUsers}+`;
+        }
+      }
+      
+      // Count completed services
+      if (bookingsRes.status === 'fulfilled') {
+        const bookingsData = bookingsRes.value.data;
+        const bookingsArray = Array.isArray(bookingsData) ? bookingsData : bookingsData?.data || [];
+        const completedServices = bookingsArray.filter(booking => booking.status === 'completed').length;
+        if (completedServices > 0) {
+          servicesCompleted = completedServices > 1000 ? `${Math.floor(completedServices / 1000)}K+` : `${completedServices}+`;
+        }
+      }
+      
+      // Calculate satisfaction from reviews
+      if (reviewsRes.status === 'fulfilled') {
+        const reviewsData = reviewsRes.value.data;
+        const reviewsArray = Array.isArray(reviewsData) ? reviewsData : reviewsData?.data || [];
+        if (reviewsArray.length > 0) {
+          const avgRating = reviewsArray.reduce((sum, review) => sum + (review.rating || 0), 0) / reviewsArray.length;
+          customerSatisfaction = `${Math.round((avgRating / 5) * 100)}%`;
+        }
+      }
+      
+      console.log('AboutPage Stats:', { happyCustomers, servicesCompleted, customerSatisfaction });
+      setStats({
+        happyCustomers,
+        servicesCompleted,
+        customerSatisfaction,
+        customerSupport: '24/7'
+      });
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
+  };
+
   const teamMembers = [
     {
       name: 'John Smith',
@@ -94,11 +161,11 @@ const AboutPage = () => {
     }
   ];
 
-  const stats = [
-    { number: '10,000+', label: 'Happy Customers' },
-    { number: '50,000+', label: 'Services Completed' },
-    { number: '98%', label: 'Customer Satisfaction' },
-    { number: '24/7', label: 'Customer Support' }
+  const statsData = [
+    { number: stats.happyCustomers, label: 'Happy Customers' },
+    { number: stats.servicesCompleted, label: 'Services Completed' },
+    { number: stats.customerSatisfaction, label: 'Customer Satisfaction' },
+    { number: stats.customerSupport, label: 'Customer Support' }
   ];
 
   return (
@@ -152,7 +219,7 @@ const AboutPage = () => {
       <div className="stats-section">
         <div className="container">
           <div className="stats-grid">
-            {stats.map((stat, index) => (
+            {statsData.map((stat, index) => (
               <div key={index} className="stat-card">
                 <div className="stat-number">{stat.number}</div>
                 <div className="stat-label">{stat.label}</div>
@@ -263,8 +330,8 @@ const AboutPage = () => {
             <h2>Ready to Experience the Difference?</h2>
             <p>Join thousands of satisfied customers who trust CarService with their vehicles.</p>
             <div className="cta-buttons">
-              <a href="/services" className="btn-primary">Browse Services</a>
-              <a href="/contact" className="btn-secondary">Contact Us</a>
+              <a href="/services" className="btn btn-primary btn-lg">Browse Services</a>
+              <a href="/contact" className="btn btn-secondary btn-lg">Contact Us</a>
             </div>
           </div>
         </div>
@@ -274,5 +341,7 @@ const AboutPage = () => {
 };
 
 export default AboutPage;
+
+
 
 

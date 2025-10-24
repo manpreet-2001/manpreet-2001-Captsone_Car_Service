@@ -39,7 +39,7 @@ const getBookings = async (req, res) => {
       .populate('mechanic', 'name email phone')
       .populate('vehicle', 'make model year licensePlate')
       .populate('service', 'serviceName category baseCost estimatedDuration')
-      .sort({ bookingDate: 1, bookingTime: 1 })
+      .sort({ createdAt: -1, bookingDate: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
