@@ -79,7 +79,7 @@ router.route('/:id')
       res.status(500).json({ success: false, message: 'Failed to fetch service', error: error.message });
     }
   })
-  .put(validateObjectId('id'), authorize('mechanic'), validateService, async (req, res) => {
+  .put(validateObjectId('id'), authorize('mechanic', 'admin'), validateService, async (req, res) => {
     try {
       let service = await Service.findById(req.params.id);
       if (!service) return res.status(404).json({ success: false, message: 'Service not found' });
@@ -92,7 +92,7 @@ router.route('/:id')
       res.status(500).json({ success: false, message: 'Failed to update service', error: error.message });
     }
   })
-  .delete(validateObjectId('id'), authorize('mechanic'), async (req, res) => {
+  .delete(validateObjectId('id'), authorize('mechanic', 'admin'), async (req, res) => {
     try {
       const service = await Service.findById(req.params.id);
       if (!service) return res.status(404).json({ success: false, message: 'Service not found' });
